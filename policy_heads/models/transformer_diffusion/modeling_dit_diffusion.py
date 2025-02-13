@@ -534,7 +534,6 @@ class DiT(PreTrainedModel):
         global_cond = self.combine(global_cond)
 
         if not torch.is_tensor(t):
-            # TODO: this requires sync between CPU and GPU. So try to pass timesteps as tensors if you can
             t = torch.tensor([t], dtype=torch.long, device=x.device)
         elif torch.is_tensor(t) and len(t.shape) == 0:
             t = t[None].to(x.device)

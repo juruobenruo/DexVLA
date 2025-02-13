@@ -58,7 +58,6 @@ deepspeed --master_port 29604 --num_gpus=8 --num_nodes=1 ./train_vla.py \
   --logging_dir $OUTPUT/log | tee $OUTPUT/log.log
 
 for dir in "$OUTPUT"/*/ ; do
-    # 检查文件夹名称是否包含'checkpoint'
     if [[ "$(basename "$dir")" == *"checkpoint"* ]]; then
         cp ${MNOP}/preprocessor_config.json $dir
         cp ${MNOP}/chat_template.json $dir

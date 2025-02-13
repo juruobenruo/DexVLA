@@ -1,17 +1,14 @@
 <h1 align="center">
-TinyVLA: Towards Fast, Data-Efficient Vision-Language-Action Models
-for Robotic Manipulation</h1>
+DexVLA: Vision-Language Model with Plug-In Diffusion Expert for Visuomotor Policy Learning</h1>
 
 
-* **TinyVLA: Towards Fast, Data-Efficient Vision-Language-Action Modelsfor Robotic Manipulation** <br>
+* **DexVLA: Vision-Language Model with Plug-In Diffusion Expert for Visuomotor Policy Learning** <br>
   [![arXiv](https://img.shields.io/badge/Arxiv-2402.03766-b31b1b.svg?logo=arXiv)](https://arxiv.org/abs/2409.12514)
   
 
 
 ## 📰 News
-* **`Feb. 12th, 2025`**: 🔥🔥🔥Our code is released!
-* **`Feb. 9th, 2025`**: 🔥🔥🔥**TinyVLA** is accepted by IEEE Robotics and Automation Letters (RA-L) 2025!
-* **`Nov. 19th, 2024`**: **TinyVLA** is out! **Paper** can be found [here](https://arxiv.org/abs/2409.12514). The **project web** can be found [here](https://tiny-vla.github.io/).
+* **`Nov. 19th, 2024`**: **DexVLA** is out! **Paper** can be found [here](https://arxiv.org/abs/2502.05855). The **project web** can be found [here](https://dex-vla.github.io/).
 
 ## Contents
 - [Install](#install)
@@ -104,13 +101,15 @@ We build our project based on:
 
 ## Citation
 
-If you find Tiny-VLA useful for your research and applications, please cite using this BibTeX:
+If you find DexVLA useful for your research and applications, please cite using this BibTeX:
 ```bibtex
-@misc{
-    @inproceedings{wen2024tinyvla,
-    title={Tinyvla: Towards fast, data-efficient vision-language-action models for robotic manipulation},
-    author={Wen, Junjie and Zhu, Yichen and Li, Jinming and Zhu, Minjie and Wu, Kun and Xu, Zhiyuan and Liu, Ning and Cheng, Ran and Shen, Chaomin and Peng, Yaxin and others},
-    booktitle={IEEE Robotics and Automation Letters (RA-L)},
-    year={2025}
+@misc{wen2025dexvlavisionlanguagemodelplugin,
+      title={DexVLA: Vision-Language Model with Plug-In Diffusion Expert for General Robot Control}, 
+      author={Junjie Wen and Yichen Zhu and Jinming Li and Zhibin Tang and Chaomin Shen and Feifei Feng},
+      year={2025},
+      eprint={2502.05855},
+      archivePrefix={arXiv},
+      primaryClass={cs.RO},
+      url={https://arxiv.org/abs/2502.05855}, 
 }
 ```

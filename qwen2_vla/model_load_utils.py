@@ -105,7 +105,6 @@ def load_model(config=None, qwen2_vla_config=None, rank0_print=print, tokenizer=
                 keys_to_del.append(k)
 
         # keys_to_del = ['policy_head.final_conv.1.weight', 'policy_head.final_conv.1.bias']
-        # todo
         # if config['action_head_args'].action_dim == 144:
         #     keys_to_del = []
         #     rank0_print(f"{RED}Deleting some modules to adapt for bimanual setting....{RESET}")
@@ -215,7 +214,6 @@ def load_model(config=None, qwen2_vla_config=None, rank0_print=print, tokenizer=
             torch.float32 if training_args.fp16 else (torch.bfloat16 if training_args.bf16 else torch.float32))
         model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=training_args.gradient_checkpointing)
 
-    # TODO: https://huggingface.co/microsoft/phi-2/discussions/31. But in this code, setting gradient_checkpointing=True, it doesn't raise any error
     if training_args.gradient_checkpointing:
         if hasattr(model, "enable_input_require_grads"):
             model.enable_input_require_grads()

@@ -1,20 +1,10 @@
-import copy
-from dataclasses import dataclass, field, fields, asdict
-import json
-import logging
-import pathlib
-from typing import Dict, Optional, Sequence, List
-import sys
+from dataclasses import dataclass
+from typing import Dict, Sequence
 import torch
-
 import transformers
 import gc
-
-from PIL import Image
 import numpy as np
 import os
-from qwen_vl_utils import process_vision_info
-from qwen_vl_utils import fetch_image, fetch_video
 
 @dataclass
 class Qwen2VLADataCollatorForSupervisedDataset(object):
@@ -81,8 +71,6 @@ class Qwen2VLADataCollatorForSupervisedDataset(object):
 
         is_pad_all = torch.stack([instance['is_pad'] for instance in instances])
         
-        #print("#"*60)
-        #print(attention_mask.shape)
         #exit(0)
         batch = dict(
             input_ids=input_ids,

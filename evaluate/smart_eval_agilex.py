@@ -204,7 +204,6 @@ class qwen2_vla_policy:
                 ele['resized_width'] = 224
             each = fetch_image(ele)
             image_list.append(torch.from_numpy(np.array(each)))
-        # TODO RESIZE
         # image_data = image_data / 255.0
         image_data = image_list
         text = self.multimodal_processor.apply_chat_template(
@@ -312,7 +311,6 @@ def eval_bc(policy, deploy_env, policy_config, save_episode=True, num_rollouts=1
 
                 robot_state = torch.from_numpy(robot_state).float().cuda()
 
-                # todo add resize&crop to wrist camera
                 if t % query_frequency == 0:
                     curr_image = torch.from_numpy(traj_rgb_np).float().cuda()
                     if rand_crop_resize:
