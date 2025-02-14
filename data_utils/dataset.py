@@ -48,19 +48,7 @@ class Qwen2VLADataCollatorForSupervisedDataset(object):
             image_grid_thw = image_grid_thw.reshape(b * image_grid_thw.shape[1], image_grid_thw.shape[2])
             pixel_values = pixel_values.reshape(b * pixel_values.shape[1], pixel_values.shape[2])
 
-        attention_mask = input_ids.ne(self.tokenizer.pad_token_id),
-        # attention_mask = torch.nn.utils.rnn.pad_sequence(labels,
-        #                                          batch_first=True,
-        #                                          padding_value=1)
-
-        # max_length = max([each.shape[-1] for each in input_ids])
-        # pad_id = self.tokenizer.pad_token_id
-        # for idx,_ in enumerate(input_ids):
-        #     length = input_ids[idx].shape[-1]
-        #     padd = torch.ones((1, max_length-length), dtype=torch.long, device=input_ids[idx].device)
-        #     input_ids[idx] = torch.cat((padd*pad_id,input_ids[idx]), dim=-1)
-        #     attention_mask[idx] = torch.cat((padd,attention_mask[idx]), dim=-1)
-        #     labels[idx] = torch.cat((padd*-100,labels[idx]), dim=-1)
+        attention_mask = input_ids.ne(self.tokenizer.pad_token_id)
             
         if not isinstance(instances[0]['action'], torch.Tensor):
             actions = torch.tensor(np.array([instance['action'] for instance in instances]))
@@ -74,7 +62,6 @@ class Qwen2VLADataCollatorForSupervisedDataset(object):
         #exit(0)
         batch = dict(
             input_ids=input_ids,
-            # token_type_ids=model_inputs['token_type_ids'],
             attention_mask=attention_mask[0],
             labels=labels,
             image_grid_thw=image_grid_thw,
@@ -83,8 +70,7 @@ class Qwen2VLADataCollatorForSupervisedDataset(object):
             states=states,
             video_grid_thw=video_grid_thw,
             pixel_values=pixel_values,
-            is_pad=is_pad_all,
-            # attention_mask=input_ids.ne(temp_pad_token_id),
+            is_pad=is_pad_all
         )
         del input_ids
         del attention_mask
