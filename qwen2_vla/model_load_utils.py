@@ -424,14 +424,13 @@ def load_model_for_eval(model_path, model_base, load_8bit=False, load_4bit=False
         kwargs['device_map'] = device_map
     
     if 'qwen2' in model_path.lower():
-        # Load LLaVA-Phi model
-        if 'lora' in model_path.lower() and model_base is None:
+
+        if 'lora' in model_path.lower() and model_base is None: # only for lora finetuning
             warnings.warn(
                 'There is `lora` in model name but no `model_base` is provided. If you are loading a LoRA model, please provide the `model_base` argument.')
-        if 'lora' in model_path.lower() and model_base is not None:
+        if 'lora' in model_path.lower() and model_base is not None: # only for lora finetuning
             if policy_config['pretrain_path'] is not None:
                 ps = model_path.split('/')
-                # parent_model_path = '/'.join(ps[:-1])
                 if not os.path.exists(os.path.join(policy_config['pretrain_path'], 'pretrain_merge_weights')):
                     print("merging pretrained weights.......")
                     model, tokenizer = load_merge_lora_weights(model_path=policy_config['pretrain_path'], model_base=model_base, kwargs=kwargs)
@@ -508,9 +507,7 @@ def load_model_for_eval(model_path, model_base, load_8bit=False, load_4bit=False
             tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=False)
             model = AutoModelForCausalLM.from_pretrained(model_path, low_cpu_mem_usage=True, **kwargs)
 
-    # image_processor = AutoImageProcessor.from_pretrained(model_path, use_fast=False)
-    # multi_modal_processor = Qwen2VLProcessor.from_pretrained(model_path, use_fast=False)
-    # multi_modal_processor.image_processor = image_processor
+
     multi_modal_processor = AutoProcessor.from_pretrained(model_path, use_fast=False)
     if hasattr(model.config, "max_sequence_length"):
         context_len = model.config.max_sequence_length
