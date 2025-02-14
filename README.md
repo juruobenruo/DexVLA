@@ -23,11 +23,7 @@ DexVLA: Vision-Language Model with Plug-In Diffusion Expert for Visuomotor Polic
 ```bash
 git clone https://github.com/lesjie-wen/dexvla.git
 ```
-
-2. Install Package
-1. flash_attn
-2. cd open_dex_vla pip install
-3. cd policy_heads pip install
+Install Packages
 ```Shell
 conda create -n dexvla python=3.10 -y
 conda activate dexvla
@@ -36,14 +32,19 @@ pip install -r requirements.txt
 cd policy_heads
 pip install -e .
 ```
+For training acceleration, please install [flash_attention](https://github.com/Dao-AILab/flash-attention).
+```shell
+pip install flash-attn --no-build-isolation
+```
 
 ## Data Preparation
-1. Our data format is the same as [act](https://github.com/MarkFzp/act-plus-plus), so you need to transfer your data into h5py format. You can refer to the [rlds_to_h5py.py](https://github.com/lesjie-wen/tinyvla/blob/main/data_utils/rlds_to_h5py.py) which is used to transfer the data from rlds format to h5py format.
+1. Our data format is the same as [act](https://github.com/MarkFzp/act-plus-plus), so you need to transfer your data into h5py format. You can refer to function "generate_h5" in [data_preprocess_scripts/rlds_to_h5py.py](https://github.com/lesjie-wen/tinyvla/blob/main/data_utils/rlds_to_h5py.py) which is used to transfer the data from rlds format to h5py format.
 ```angular2html
 # h5 data structure
 root
   |-action (100,10)
   |-language_raw (1,)
+  |-substep_reasonings (100,)
   |-observations
       |-images # multi-view
           |-left (100,480,640,3)
@@ -57,15 +58,18 @@ root
 ```python
     'example_task_name': { # for local debug
         'dataset_dir': [
-            DATA_DIR + '/your_task_path', # define the path of the dataset
+            '/path/to/task1', # define the path of the dataset
         ],
         'episode_len': 1000,  
-        'camera_names': ['cam_high', 'cam_left_wrist', 'cam_right_wrist']
+        'camera_names': ['left', 'right', 'wrist'] # keys corresponding to below h5 data structure
     }
 ```
 
 ## Download Pretrained VLM
-We construct the VLM backbone by integrating Qwen2-VL 2B, a powerful and efficient model, into our framework. The Qwen2-VL 2B serves as the core of our architecture, providing robust capabilities for vision-language tasks. We follow the standard training pipeline and data setup used in [Qwen-VL](https://github.com/QwenLM/Qwen-VL), ensuring the integration is seamless. The weights of Qwen2-VL 2B used in our paper are listed as follows: 
+We construct the VLM backbone by integrating Qwen2-VL-2B, a powerful and efficient model, into our framework. 
+The Qwen2-VL 2B serves as the core of our architecture, providing robust capabilities 
+for vision-language tasks. We use off-the-shelf Qwen2-VL model proposed 
+in [Qwen2-VL](https://arxiv.org/pdf/2409.12191) without any post training on VLM itself. You can download the official weights from this link:
 
 | Model               | Link                                                           |
 |---------------------|----------------------------------------------------------------|
@@ -77,12 +81,25 @@ The training script are "scripts/stage2_train.sh" and "scripts/stage3_train.sh".
 1. **OUTPUT** :refers to the save directory for training, which must include the keyword "qwen2"(and optionally "lora"). If LoRA training is used, the name must include "lora" (e.g., "qwen2_lora").
 2. **task_name** :refers to the tasks used for training, which should be corresponded to "your_task_name" in aloha_scripts/constant.py
 3. **model_name_or_path** :path to the pretrained VLM weights
-Other hyperparameters like "batch_size", "save_steps" could be customized according to your computation resources.
 
+Other hyperparameters like "batch_size", "save_steps" could be customized according to your computation resources.
 Start training by following commands:
+
+Train stage2. Training on large amount of tasks.
+And following hyper-parameters must be set as:
+1. **load_pretrain_dit** : True
+2. **DIT_PRETRAIN** :Path to pretrained policy head(ScaleDP).
+3. **MNOP** :Path to official Qwen2_vl weights(VLM backbone).
+
 ```shell
-./scripts/stage2_train.sh
-./scripts/stage3_train.sh
+./scripts/stage2_train.sh 
+```
+Train stage3. Post-training on target dexterous tasks. 
+And following hyper-parameters must be set as:
+1. **MNOP** :Path to trained DexVLA of Stage2.
+
+```shell
+./scripts/stage3_train.sh 
 ```
 
 ## Evaluation
