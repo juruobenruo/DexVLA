@@ -64,7 +64,7 @@ def get_obs(deplot_env_obs, stats, time=0):
     cur_left_rgb = deplot_env_obs['images']['cam_left_wrist']  # camera_extrinsics image
     cur_right_rgb = deplot_env_obs['images']['cam_right_wrist']  # camera_extrinsics image
 
-    cur_bottom_rgb = cv2.resize(cv2.cvtColor(cur_bottom_rgb, cv2.COLOR_BGRA2BGR), (320, 240))[:, :, ::-1]
+    cur_bottom_rgb = cv2.resize(cv2.cvtColor(cur_bottom_rgb, cv2.COLOR_BGRA2BGR), (320, 240))[:, :, ::-1] #（320,240,3）
     cur_top_rgb = cv2.resize(cv2.cvtColor(cur_top_rgb, cv2.COLOR_BGRA2BGR), (320, 240))[:, :, ::-1]
     cur_left_rgb = cv2.resize(cv2.cvtColor(cur_left_rgb, cv2.COLOR_BGRA2BGR), (320, 240))[:, :, ::-1]
     cur_right_rgb = cv2.resize(cv2.cvtColor(cur_right_rgb, cv2.COLOR_BGRA2BGR), (320, 240))[:, :, ::-1]

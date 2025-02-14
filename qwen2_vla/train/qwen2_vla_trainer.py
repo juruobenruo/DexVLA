@@ -155,7 +155,7 @@ class CustomBatchSampler(Sampler):
         self.sample_probs = np.array(sample_weights) / np.sum(sample_weights) if sample_weights is not None else None
         self.sum_dataset_len_l = np.cumsum([0] + [np.sum(episode_len) for episode_len in episode_len_l])
         self.max_steps = self.sum_dataset_len_l[-1]
-        self.episode_first = episode_first # 是否采用轨迹优先的采样策略
+        self.episode_first = episode_first # Whether to adopt a trajectory-first sampling strategy
         if eval:
             self.epochs = int(self.max_steps / batch_size)
         else:
@@ -271,7 +271,7 @@ class QWen2VLATrainer(Trainer):
         if self.args.group_by_modality_length:
             lengths = self.train_dataset.modality_lengths
             return LengthGroupedSampler(
-                # self.args.train_batch_size * self.args.gradient_accumulation_steps, # TODO: seems that we should not have gradient_accumulation_steps
+                # self.args.train_batch_size * self.args.gradient_accumulation_steps, 
                 self.args.train_batch_size,
                 world_size=self.args.world_size,
                 lengths=lengths,
@@ -310,14 +310,13 @@ class QWen2VLATrainer(Trainer):
                 test = []
                 for name, module in opt_model.named_parameters():
 
-                    # if 'layers' in name and 'vision' not in name and 'gpt_neox' in name: # gptneoxl LLM的参数
-                    if 'policy_head' not in name and 'layers' in name and 'vision' not in name and self.lang_type in name:  # gptneoxl LLM的参数
+                    # if 'layers' in name and 'vision' not in name and 'gpt_neox' in name: # The parameters of the GPT-NeoX-L model
+                    if 'policy_head' not in name and 'layers' in name and 'vision' not in name and self.lang_type in name:  # The parameters of the gptneoxl LLM
                         if 'llm' not in self.lora_module:
                             non_lora_parameters.append(name)
                         pass
 
-                    elif any(key in name for key in non_lora_modules):  # vision adapter、action head的参数
-                        # non_lora_parameters.append(name)
+                    elif any(key in name for key in non_lora_modules):  # The parameters of the vision adapter and action head
                         non_lora_parameters.append(name)
 
                 optimizer_grouped_parameters = [

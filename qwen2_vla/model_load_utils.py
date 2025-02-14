@@ -91,14 +91,13 @@ def load_model(config=None, qwen2_vla_config=None, rank0_print=print, tokenizer=
         else:
             raise f"there is no non_lora_trainables.bin in {model_path}"
 
-            non_lora_trainables = load_from_hf(model_path, 'non_lora_trainables.bin')
         non_lora_trainables = {(k[11:] if k.startswith('base_model.') else k): v for k, v in
                                non_lora_trainables.items()}
         if any(k.startswith('model.policy_head.') for k in non_lora_trainables):
             non_lora_trainables = {(k[6:] if k.startswith('model.') else k): v for k, v in
                                    non_lora_trainables.items()}
 
-        # 删除lora相关的参数
+        # Delete the parameters related to Lora
         keys_to_del = []
         for k, v in non_lora_trainables.items():
             if 'lora' in k:
@@ -129,7 +128,7 @@ def load_model(config=None, qwen2_vla_config=None, rank0_print=print, tokenizer=
         model = model.merge_and_unload()
         rank0_print('Model is loaded...')
         model.to(torch.bfloat16)
-    # else:
+    
     else:
         kwargs = {"device_map": "cuda", "torch_dtype": torch.bfloat16}
         if config['training_args'].flash_attn:
@@ -263,7 +262,7 @@ def load_model(config=None, qwen2_vla_config=None, rank0_print=print, tokenizer=
         except Exception as e:
             print(e)
             model.language_model.lm_head.requires_grad_(True)
-    # action head需要训练
+    # action head need to be trained
     model.policy_head.requires_grad_(True)
 
     if config['model_args'].with_text_fcs:
@@ -411,7 +410,7 @@ def load_merge_lora_weights(model_path=None, model_base=None, kwargs=None):
         non_lora_trainables = {(k[6:] if k.startswith('model.') else k): v for k, v in
                                non_lora_trainables.items()}
 
-    # 删除lora相关的参数
+    # Delete the parameters related to Lora
     keys_to_del = []
     for k, v in non_lora_trainables.items():
         if 'lora' in k:
@@ -463,9 +462,8 @@ def load_model_for_eval(model_path, model_base, load_8bit=False, load_4bit=False
     #                                                   **kwargs)
     #     tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=False)
     #     model = model.to(torch.bfloat16)
-    if False:
-        pass
-    elif 'qwen2' in model_path.lower():
+    
+    if 'qwen2' in model_path.lower():
         # Load LLaVA-Phi model
         if 'lora' in model_path.lower() and model_base is None:
             warnings.warn(
@@ -550,7 +548,6 @@ def load_model_for_eval(model_path, model_base, load_8bit=False, load_4bit=False
             tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=False)
             model = AutoModelForCausalLM.from_pretrained(model_path, low_cpu_mem_usage=True, **kwargs)
 
-    print("aaaa")
     # image_processor = AutoImageProcessor.from_pretrained(model_path, use_fast=False)
     # multi_modal_processor = Qwen2VLProcessor.from_pretrained(model_path, use_fast=False)
     # multi_modal_processor.image_processor = image_processor

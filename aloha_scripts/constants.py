@@ -3,7 +3,7 @@ TASK_CONFIGS = {
         'dataset_dir': [
             "/media/rl/HDD/data/data/aloha_data/4_cameras_aloha/folding_shirt"
         ],
-        'episode_len': 1000,  # 1000,
+        'episode_len': 1000,  
         'camera_names': ['cam_high', 'cam_left_wrist', 'cam_right_wrist']
     }
 }

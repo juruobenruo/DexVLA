@@ -155,9 +155,6 @@ def parse_param():
     local_rank = training_args.local_rank
     compute_dtype = (torch.float16 if training_args.fp16 else (torch.bfloat16 if training_args.bf16 else torch.float32))
 
-    #     print("##"*50)
-    #     print(training_args.logging_dir)
-
     bnb_model_from_pretrained_args = {}
     if training_args.bits in [4, 8]:
         from transformers import BitsAndBytesConfig
@@ -268,7 +265,6 @@ def main(all_config=None, model_config=None):
     all_config['camera_names'] = camera_names
     all_config['episode_len'] = episode_len
 
-    # todo this is pythia's tokenizer not paligemma
     tokenizer = transformers.AutoTokenizer.from_pretrained(
         all_config['model_args'].model_name_or_path,
     )
