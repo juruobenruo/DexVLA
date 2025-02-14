@@ -19,6 +19,7 @@ from aloha_scripts.constants import TASK_CONFIGS
 from qwen2_vla.utils.robot_data_processor import Qwen2VLAProcess
 from transformers import AutoConfig, AutoModel, AutoProcessor
 from qwen2_vla import QWen2VLATrainer
+import transformers
 import IPython
 e = IPython.embed
 from data_utils.data_collators import Qwen2VLADataCollatorForSupervisedDataset

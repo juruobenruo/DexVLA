@@ -422,13 +422,6 @@ def load_model_for_eval(model_path, model_base, load_8bit=False, load_4bit=False
         with open(os.path.join(model_base, 'device_map.json'), 'r') as f:
             device_map = json.load(f)
         kwargs['device_map'] = device_map
-
-    # if os.path.exists(os.path.join(model_path, 'merge_weights')) and len(os.listdir(os.path.join(model_path, 'merge_weights'))) > 1:
-    #     kwargs['torch_dtype'] = torch.bfloat16
-    #     model = AutoModelForCausalLM.from_pretrained(os.path.join(model_path, 'merge_weights'), low_cpu_mem_usage=True,
-    #                                                   **kwargs)
-    #     tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=False)
-    #     model = model.to(torch.bfloat16)
     
     if 'qwen2' in model_path.lower():
         # Load LLaVA-Phi model
