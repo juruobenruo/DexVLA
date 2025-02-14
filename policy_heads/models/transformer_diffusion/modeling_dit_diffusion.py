@@ -22,17 +22,6 @@ from torch.jit import Final
 from timm.models.vision_transformer import Mlp, use_fused_attn
 from transformers.modeling_utils import PreTrainedModel
 from transformers import AutoModel, AutoModelForCausalLM
-# from timm.data import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD, IMAGENET_INCEPTION_MEAN, IMAGENET_INCEPTION_STD, \
-#     OPENAI_CLIP_MEAN, OPENAI_CLIP_STD
-# from timm.layers import PatchEmbed, Mlp, DropPath, AttentionPoolLatent, RmsNorm, PatchDropout, SwiGLUPacked, \
-#     trunc_normal_, lecun_normal_, resample_patch_embed, resample_abs_pos_embed, use_fused_attn, \
-#     get_act_layer, get_norm_layer, LayerType
-# from ._builder import build_model_with_cfg
-# from ._manipulate import named_apply, checkpoint_seq, adapt_input_conv
-# from ._registry import generate_default_cfgs, register_model, register_model_deprecations
-
-# __all__ = ['VisionTransformer']  # model_registry will add each entrypoint fn to this
-
 
 _logger = logging.getLogger(__name__)
 
@@ -152,41 +141,9 @@ class TimestepEmbedder(nn.Module):
 
     def forward(self, t):
         t_freq = self.timestep_embedding(t, self.frequency_embedding_size)
-        #print("@@"*50)
-        #print(t_freq.dtype)
         t_emb = self.mlp(t_freq)
         return t_emb
 
-
-# class LabelEmbedder(nn.Module):
-#     """
-#     Embeds class labels into vector representations. Also handles label dropout for classifier-free guidance.
-#     """
-#
-#     def __init__(self, num_classes, hidden_size, dropout_prob):
-#         super().__init__()
-#         use_cfg_embedding = dropout_prob > 0
-#         self.embedding_table = nn.Embedding(num_classes + use_cfg_embedding, hidden_size)
-#         self.num_classes = num_classes
-#         self.dropout_prob = dropout_prob
-#
-#     def token_drop(self, labels, force_drop_ids=None):
-#         """
-#         Drops labels to enable classifier-free guidance.
-#         """
-#         if force_drop_ids is None:
-#             drop_ids = torch.rand(labels.shape[0], device=labels.device) < self.dropout_prob
-#         else:
-#             drop_ids = force_drop_ids == 1
-#         labels = torch.where(drop_ids, self.num_classes, labels)
-#         return labels
-#
-#     def forward(self, labels, train, force_drop_ids=None):
-#         use_dropout = self.dropout_prob > 0
-#         if (train and use_dropout) or (force_drop_ids is not None):
-#             labels = self.token_drop(labels, force_drop_ids)
-#         embeddings = self.embedding_table(labels)
-#         return embeddings
 
 
 #################################################################################
@@ -261,10 +218,7 @@ class DiT(PreTrainedModel):
         if obs_as_cond:
             assert config.time_as_cond
             T_cond += config.n_obs_steps
-        sz = T
-        # mask = (torch.triu(torch.ones(sz, sz)) == 1).transpose(0, 1)
-        # mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
-        # self.register_buffer("mask", mask)
+
         self.is_tinyvla = config.is_tinyvla
         if config.is_tinyvla:
             self.global_1d_pool = nn.AdaptiveAvgPool1d(1)
@@ -332,9 +286,6 @@ class DiT(PreTrainedModel):
 
         self.apply(_basic_init)
 
-        # Initialize (and freeze) pos_embed by sin-cos embedding:
-        # pos_embed = get_2d_sincos_pos_embed(self.pos_embed.shape[-1], int(self.x_embedder.num_patches ** 0.5))
-        # self.pos_embed.data.copy_(torch.from_numpy(pos_embed).float().unsqueeze(0))
         nn.init.normal_(self.pos_embed, mean=0.0, std=0.02)
 
         # Initialize patch_embed like nn.Linear (instead of nn.Conv2d):
@@ -361,20 +312,6 @@ class DiT(PreTrainedModel):
         nn.init.constant_(self.final_layer.linear.weight, 0)
         nn.init.constant_(self.final_layer.linear.bias, 0)
 
-    # def unpatchify(self, x):
-    #     """
-    #     x: (N, T, patch_size**2 * C)
-    #     imgs: (N, H, W, C)
-    #     """
-    #     c = self.out_channels
-    #     p = self.x_embedder.patch_size[0]
-    #     h = w = int(x.shape[1] ** 0.5)
-    #     assert h * w == x.shape[1]
-    #
-    #     x = x.reshape(shape=(x.shape[0], h, w, p, p, c))
-    #     x = torch.einsum('nhwpqc->nchpwq', x)
-    #     imgs = x.reshape(shape=(x.shape[0], c, h * p, h * p))
-    #     return imgs
 
     def get_optim_groups(self, weight_decay: float = 1e-3):
         """
@@ -405,12 +342,6 @@ class DiT(PreTrainedModel):
                 elif pn.endswith("weight") and isinstance(m, blacklist_weight_modules):
                     # weights of blacklist modules will NOT be weight decayed
                     no_decay.add(fpn)
-
-        # special case the position embedding parameter in the root GPT module as not decayed
-        # no_decay.add("pos_emb")
-        # no_decay.add("_dummy_variable")
-        # if self.cond_pos_emb is not None:
-        #     no_decay.add("cond_pos_emb")
 
         # validate that we considered every parameter
         param_dict = {pn: p for pn, p in self.named_parameters()}
@@ -521,7 +452,7 @@ class DiT(PreTrainedModel):
     def model_forward(self, x, t, global_cond, states):
         """
         Forward pass of DiT.
-        x: (N, T, input_dim)
+        x: (N, T, input_dim) noisy actions
         t: (N,) tensor of diffusion timesteps
         global_cond: (N, n_obs_steps, D) tensor of conditions: image embeddings
         """
@@ -551,23 +482,6 @@ class DiT(PreTrainedModel):
         x = self.final_layer(x, c)  # (N, T, output_dim)
         return x
 
-    # def forward_with_cfg(self, x, t, y, cfg_scale):
-    #     """
-    #     Forward pass of DiT, but also batches the unconditional forward pass for classifier-free guidance.
-    #     """
-    #     # https://github.com/openai/glide-text2im/blob/main/notebooks/text2im.ipynb
-    #     half = x[: len(x) // 2]
-    #     combined = torch.cat([half, half], dim=0)
-    #     model_out = self.forward(combined, t, y)
-    #     # For exact reproducibility reasons, we apply classifier-free guidance on only
-    #     # three channels by default. The standard approach to cfg applies it to all channels.
-    #     # This can be done by uncommenting the following line and commenting-out the line following that.
-    #     # eps, rest = model_out[:, :self.in_channels], model_out[:, self.in_channels:]
-    #     eps, rest = model_out[:, :3], model_out[:, 3:]
-    #     cond_eps, uncond_eps = torch.split(eps, len(eps) // 2, dim=0)
-    #     half_eps = uncond_eps + cfg_scale * (cond_eps - uncond_eps)
-    #     eps = torch.cat([half_eps, half_eps], dim=0)
-    #     return torch.cat([eps, rest], dim=1)
 
 
 #################################################################################
