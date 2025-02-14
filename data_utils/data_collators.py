@@ -18,7 +18,6 @@ class Qwen2VLADataCollatorForSupervisedDataset(object):
     # @profile
     def __call__(self, instances: Sequence[Dict]) -> Dict[str, torch.Tensor]:
         input_ids = [torch.flip(instance['input_ids'].squeeze(0), dims=[0]) for instance in instances]
-        attention_mask = [torch.flip(instance['attention_mask'].squeeze(0), dims=[0]) for instance in instances]
         labels = [torch.flip(instance['labels'].squeeze(0), dims=[0]) for instance in instances]
         if self.video:
             video_grid_thw = torch.stack([instances['video_grid_thw'] for instances in instances])
@@ -58,11 +57,12 @@ class Qwen2VLADataCollatorForSupervisedDataset(object):
             states = torch.stack([instance['state'] for instance in instances])
 
         is_pad_all = torch.stack([instance['is_pad'] for instance in instances])
-        
+
+        assert len(attention_mask.shape) == 2, "Attention mask shape should be (batch_size, seq_len)"
         #exit(0)
         batch = dict(
             input_ids=input_ids,
-            attention_mask=attention_mask[0],
+            attention_mask=attention_mask,
             labels=labels,
             image_grid_thw=image_grid_thw,
             pixel_values_videos=pixel_values_videos,
