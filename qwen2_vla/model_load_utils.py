@@ -49,7 +49,6 @@ def load_model(config=None, qwen2_vla_config=None, rank0_print=print, tokenizer=
     training_args = config['training_args']
     data_args = config['data_args']
     action_args = config['action_head_args']
-    load_pretrain_align_module = False
     if training_args.load_pretrain: # loading pretrained weights
         pass
         kwargs = {"device_map": "cuda", "torch_dtype": torch.bfloat16}
@@ -83,8 +82,6 @@ def load_model(config=None, qwen2_vla_config=None, rank0_print=print, tokenizer=
                 _fast_init=False,
                 # attn_implementation="flash_attention_2",
             )
-        # rank0_print(f'{RED} Only loading lora weights from pretrained model because the stage_1(pretrain) only lora the VLM {RESET}')
-
         rank0_print(f'Loading pretrained additional <<{model_path}/non_lora_trainables.bin>> weights...')
         if os.path.exists(os.path.join(model_path, 'non_lora_trainables.bin')):
             non_lora_trainables = torch.load(os.path.join(model_path, 'non_lora_trainables.bin'), map_location='cpu')
@@ -102,20 +99,6 @@ def load_model(config=None, qwen2_vla_config=None, rank0_print=print, tokenizer=
         for k, v in non_lora_trainables.items():
             if 'lora' in k:
                 keys_to_del.append(k)
-
-        # keys_to_del = ['policy_head.final_conv.1.weight', 'policy_head.final_conv.1.bias']
-        # if config['action_head_args'].action_dim == 144:
-        #     keys_to_del = []
-        #     rank0_print(f"{RED}Deleting some modules to adapt for bimanual setting....{RESET}")
-        #     for name in ['policy_head.combine.weight','policy_head.down_modules.0.0.blocks.0.block.0.weight', 'policy_head.down_modules.0.0.residual_conv.weight',
-        #                  'policy_head.final_conv.1.weight', 'policy_head.final_conv.1.bias']:
-        #         keys_to_del.append(name)
-        #     rank0_print(">>"*30)
-        #     rank0_print(f"Reinitializing weights of followings:{keys_to_del}")
-        # print(keys_to_del)
-        # print("#"*40)
-        # print(pretrain.keys())
-        # exit(0)
         for key in keys_to_del:
             del non_lora_trainables[key]
 
@@ -166,27 +149,20 @@ def load_model(config=None, qwen2_vla_config=None, rank0_print=print, tokenizer=
                 keys_to_del_dit.append(k)
             if 'cond_obs_emb' in k:
                 keys_to_del_dit.append(k)
+        pretrained_action_dim = pretrain_dit_weights['noise_pred_net.x_embedder.weight'].shape[-1]
+        if config['action_head_args'].action_dim != pretrained_action_dim:
+            rank0_print(
+                f"{RED}Current Action Dim is {config['action_head_args'].action_dim} != Pretrained Action Dim {pretrained_action_dim}. Initializing a new head and state encoder.... {RESET}")
+            # del pretrained weights of action head
+            for each in ["noise_pred_net.x_embedder.weight", "noise_pred_net.final_layer.linear.weight", "noise_pred_net.final_layer.linear.bias", 'combine.0.weight', "combine.0.bias"]:
+                if each not in keys_to_del_dit:
+                    keys_to_del_dit.append(each)
         for k in keys_to_del_dit:
             del pretrain_dit_weights[k]
         pretrain_dit_weights = {k[15:] if k.startswith('noise_pred_net.') else k: v for k, v in pretrain_dit_weights.items()}
 
         model.policy_head.load_state_dict(pretrain_dit_weights, strict=False)
 
-    if load_pretrain_align_module:
-        rank0_print(f'{RED}>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>Loading Align Module weights...<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<{RESET}')
-        pretrain_path = config['model_args'].model_pretrain
-        align_module_weights = torch.load(os.path.join(pretrain_path, 'non_lora_trainables.bin'),)
-        keys_to_del_dit = []
-        for k in align_module_weights.keys():
-            if 'policy_head' in k: # del weights of vision backbones
-                keys_to_del_dit.append(k)
-            if 'embed_tokens' in k:
-                keys_to_del_dit.append(k)
-
-        for k in keys_to_del_dit:
-            del align_module_weights[k]
-
-        model.load_state_dict(align_module_weights, strict=False)
 
     model.config.use_cache = False
 
@@ -250,23 +226,14 @@ def load_model(config=None, qwen2_vla_config=None, rank0_print=print, tokenizer=
 
     model.config.tune_mm_mlp_adapter = model_args.tune_mm_mlp_adapter = training_args.tune_mm_mlp_adapter
 
-    # if not model_args.tune_mm_mlp_adapter:
-    #     for p in model.multi_modal_projector.parameters():
-    #         p.requires_grad = False
-    # else:
-    #     for p in model.multi_modal_projector.parameters():
-    #         p.requires_grad = True
-    if config['model_args'].with_llm_head and not model_args.freeze_backbone:
+    if not model_args.freeze_backbone:
         try:
             model.lm_head.requires_grad_(True)
         except Exception as e:
             print(e)
-            model.language_model.lm_head.requires_grad_(True)
     # action head need to be trained
     model.policy_head.requires_grad_(True)
 
-    if config['model_args'].with_text_fcs:
-        model.text_hidden_fcs.requires_grad_(True)
     if config['model_args'].using_film:
         model.input_action_proj.requires_grad_(True)
         model.reasoning_action_proj.requires_grad_(True)
