@@ -1642,9 +1642,6 @@ class Qwen2VLForConditionalGenerationForVLA(Qwen2VLPreTrainedModel, GenerationMi
         is_encoder_decoder: bool = False,
         num_new_tokens: int = 1,
     ) -> Dict[str, Any]:
-        """
-        Updates the model's keyword arguments for generation and adds the rope_deltas information if available
-        """
         model_kwargs = super()._update_model_kwargs_for_generation(
             outputs=outputs,
             model_kwargs=model_kwargs,
@@ -1839,10 +1836,9 @@ class Qwen2VLForConditionalGenerationForVLA(Qwen2VLPreTrainedModel, GenerationMi
 
         ret = self.policy_head(actions=actions, hidden_states=action_hidden_states, states=states, is_pad=is_pad)
 
-
-        loss = {'loss': ret['loss'],
-                     'llm_loss': (torch.ones(1)*(-100)).to(ret['loss'].dtype).squeeze(0),
-                     'action_loss': ret['loss']}
+        loss = {'loss': ret['loss'] + self.llm_loss_weight * llm_loss,
+                'llm_loss': llm_loss,
+                'action_loss': ret['loss']}
         if not return_dict:
             output = (logits,) + outputs[1:]
             return (loss,) + output if loss is not None else output
@@ -2028,7 +2024,7 @@ class Qwen2VLForConditionalGenerationForVLA(Qwen2VLPreTrainedModel, GenerationMi
         action_hidden_states = None
 
         if self.using_film:
-            action_hidden_states = self.film_forward(labels=torch.zeros_like(output_ids),
+            action_hidden_states = self.film_forward(labels=torch.ones_like(output_ids),
                                                      input_ids=output_ids,
                                                      hidden_states=torch.cat(last_hidden_states, dim=1))
 
