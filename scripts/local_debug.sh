@@ -5,18 +5,17 @@ LLM_MODEL_SIZE=2B
 ACTION_HEAD=dit_diffusion_policy  #act #unet_diffusion_policy dit_diffusion_policy
 
 DIT_PRETRAIN=/path/to/pretrained/ScaleDP
-MNOP=/path/to/trained/DexVLA # DexVLA weights after stage 2
+MNOP=/media/rl/HDD/data/multi_head_train_results/aloha_qwen2_vla/qwen2_vl_2B/qwen2_vl_4_cameras_1_17_all_data_pretrain_4w_DiT_H_1_17_full_param_stage_1_50_raw_lang/checkpoint-60000
 TASKNAME=example_tasks
 
-OUTPUT=/path/to/save/dir
+OUTPUT=/home/rl/Downloads/output/test
 
-deepspeed --master_port 29604 --num_gpus=8 --num_nodes=1 ./train_vla.py \
-  --deepspeed scripts/zero2.json \
-  --use_reasoning True \
+python ./train_vla.py \
+  --use_reasoning False \
   --lora_enable False \
   --action_dim 14 \
   --state_dim 14 \
-  --flash_attn True \
+  --flash_attn False \
   --chunk_size 50 \
   --lora_module "vit llm" \
   --using_film True \
@@ -39,10 +38,10 @@ deepspeed --master_port 29604 --num_gpus=8 --num_nodes=1 ./train_vla.py \
   --bf16 True \
   --output_dir $OUTPUT \
   --max_steps 80000 \
-  --per_device_train_batch_size 12 \
+  --per_device_train_batch_size 2 \
   --gradient_accumulation_steps 1 \
   --save_strategy "steps" \
-  --save_steps 10000 \
+  --save_steps 5 \
   --save_total_limit 50 \
   --learning_rate 2e-5 \
   --weight_decay 0. \
