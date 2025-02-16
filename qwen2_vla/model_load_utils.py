@@ -409,19 +409,6 @@ def load_model_for_eval(model_path, model_base, load_8bit=False, load_4bit=False
         )
     else:
         kwargs['torch_dtype'] = torch.bfloat16
-        if policy_config['save_model']:
-            kwargs['torch_dtype'] = torch.bfloat16
-
-    if '72B' in model_base:
-        kwargs = {
-            "device_map":"cpu",
-            "max_memory":{0:"45GiB", 1:"45GiB", "cpu":"80GiB"},
-            "offload_folder": "/home/eai/wjj/qwen2_vla/offload",
-            "offload_state_dict": True,
-        }
-        with open(os.path.join(model_base, 'device_map.json'), 'r') as f:
-            device_map = json.load(f)
-        kwargs['device_map'] = device_map
     
     if 'qwen2' in model_path.lower():
 
@@ -439,34 +426,13 @@ def load_model_for_eval(model_path, model_base, load_8bit=False, load_4bit=False
                     model.save_pretrained(
                         os.path.join(policy_config['pretrain_path'], 'pretrain_merge_weights'))
                     tokenizer.save_pretrained(os.path.join(policy_config['pretrain_path'], 'pretrain_merge_weights'))
-                # multi_modal_processor = AutoProcessor.from_pretrained(parent_model_path, use_fast=False)
-                # multi_modal_processor.save_pretrained(os.path.join(parent_model_path, 'pretrain_merge_weights'))
+
                 print("loading pretrained weights as base model.......")
                 model, tokenizer = load_merge_lora_weights(model_path=model_path, model_base=os.path.join(policy_config['pretrain_path'], 'pretrain_merge_weights'), kwargs=kwargs)
 
             else:
                 model, tokenizer = load_merge_lora_weights(model_path=model_path, model_base=model_base, kwargs=kwargs)
 
-            if policy_config['save_model']:
-                print(f"#####################################Saving merged weights of model in {kwargs['torch_dtype']}.#####################################")
-                os.makedirs(os.path.join(model_path, 'merge_weights'), exist_ok=True)
-                model.save_pretrained(
-                    os.path.join(model_path, 'merge_weights'))
-                tokenizer.save_pretrained(os.path.join(model_path, 'merge_weights'))
-                skip_params = [
-                    "input_action_proj",
-                    "policy_head",
-                    "reasoning_action_proj",
-                    "reasoning_film",
-                ]
-                head_param = {}
-                for k,v in model.named_parameters():
-                    if any(skip_param in k.lower() for skip_param in skip_params):
-                        head_param[k] = v
-                torch.save(head_param, os.path.join(model_path, 'merge_weights/head_params.bin'))
-                multi_modal_processor = AutoProcessor.from_pretrained(model_path, use_fast=False)
-                multi_modal_processor.save_pretrained(os.path.join(model_path, 'merge_weights'))
-                exit(0)
 
             # model = model.to(torch.bfloat16)
         elif model_base is not None:
