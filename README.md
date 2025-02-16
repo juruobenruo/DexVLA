@@ -75,6 +75,8 @@ in [Qwen2-VL](https://arxiv.org/pdf/2409.12191) without any post training on VLM
 |---------------------|----------------------------------------------------------------|
 | Qwen2-VL (~2B)      | [huggingface](https://huggingface.co/Qwen/Qwen2-VL-2B-Instruct) |
 
+!!! After downloading the standard weights, you have to replace the official "config.json"
+with our "docs/config.json" designed for VLA.
 
 ## Train
 The training script are "scripts/stage2_train.sh" and "scripts/stage3_train.sh". And you need to change following parameters:
@@ -103,7 +105,39 @@ And following hyper-parameters must be set as:
 ```
 
 ## Evaluation
-You can refer to our evaluation script [smart_eval_agilex.py](https://github.com/lesjie-wen/dexvla/blob/main/evaluate/smart_eval_agilex.py).
+!!! Make sure your trained checkpoint dir has two files: "preprocessor_config.json" and "chat_template.json".
+If not, please copy them from downloaded Qwen2_vl weights or this [link](https://huggingface.co/Qwen/Qwen2-VL-2B-Instruct/tree/main).
+
+You can refer to our evaluation script [smart_eval_agilex.py](https://github.com/lesjie-wen/dexvla/blob/main/evaluate/smart_eval_agilex.py) to evaluate your DexVLA.
+
+## Trouble Shooting
+1. "TypeError: _batch_encode_plus() got an unexpected keyword argument 'images'". 
+Copy "preprocessor_config.json" and "chat_template.json" into your own trained 
+DexVLA dir. And must be put in target "checkpoint-XXXX" dir.
+~~~
+Traceback (most recent call last):
+  File "/media/rl/HDD/projects/open_dexvla_preview/train_vla.py", line 320, in <module>
+    main(all_config=config, model_config=model_config)
+  File "/media/rl/HDD/projects/open_dexvla_preview/train_vla.py", line 282, in main
+    train_dataset, val_dataset, stats, sampler_params = load_data(dataset_dir, name_filter, camera_names, all_config['training_args'].per_device_train_batch_size,
+  File "/media/rl/HDD/projects/open_dexvla_preview/data_utils/utils.py", line 337, in load_data
+    train_dataset = EpisodicDataset(dataset_path_list, camera_names, norm_stats, train_episode_ids, train_episode_len, chunk_size, policy_class, robot=robot, llava_pythia_process=llava_pythia_process, data_args=config['data_args'])
+  File "/media/rl/HDD/projects/open_dexvla_preview/data_utils/utils.py", line 43, in __init__
+    a=self.__getitem__(0) # initialize self.is_sim and self.transformations
+  File "/media/rl/HDD/projects/open_dexvla_preview/data_utils/utils.py", line 191, in __getitem__
+    return self.llava_pythia_process.forward_process(sample, use_reasoning=self.data_args.use_reasoning)
+  File "/media/rl/HDD/projects/open_dexvla_preview/qwen2_vla/utils/robot_data_processor.py", line 87, in forward_process
+    model_inputs = self.multimodal_processor(
+  File "/home/rl/miniconda3/envs/opendexvla/lib/python3.8/site-packages/transformers/tokenization_utils_base.py", line 3016, in __call__
+    encodings = self._call_one(text=text, text_pair=text_pair, **all_kwargs)
+  File "/home/rl/miniconda3/envs/opendexvla/lib/python3.8/site-packages/transformers/tokenization_utils_base.py", line 3126, in _call_one
+    return self.encode_plus(
+  File "/home/rl/miniconda3/envs/opendexvla/lib/python3.8/site-packages/transformers/tokenization_utils_base.py", line 3202, in encode_plus
+    return self._encode_plus(
+  File "/home/rl/miniconda3/envs/opendexvla/lib/python3.8/site-packages/transformers/tokenization_utils_fast.py", line 603, in _encode_plus
+    batched_output = self._batch_encode_plus(
+TypeError: _batch_encode_plus() got an unexpected keyword argument 'images'
+~~~
 
 ## Acknowledgement
 We build our project based on:
