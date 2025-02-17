@@ -112,7 +112,7 @@ If not, please copy them from downloaded Qwen2_vl weights or this [link](https:/
 You can refer to our evaluation script [smart_eval_agilex.py](https://github.com/lesjie-wen/dexvla/blob/main/evaluate/smart_eval_agilex.py) to evaluate your DexVLA.
 
 ## Trouble Shooting
-1. "TypeError: _batch_encode_plus() got an unexpected keyword argument 'images'". 
+### 1."TypeError: _batch_encode_plus() got an unexpected keyword argument 'images'". 
 Copy "preprocessor_config.json" and "chat_template.json" into your own trained 
 DexVLA dir. And must be put in target "checkpoint-XXXX" dir.
 ~~~
@@ -139,6 +139,40 @@ Traceback (most recent call last):
     batched_output = self._batch_encode_plus(
 TypeError: _batch_encode_plus() got an unexpected keyword argument 'images'
 ~~~
+### 2. <font color=red>CUDA OOM</font>. 
+Deepspeed allows to offload optimizer part to cpu which saves a lots of cuda memory. You can enbale the offload by adding following part in scripts/zero2.json.
+Please make sure your GCC version > 9.
+~~~json
+    "zero_optimization": {
+        "stage": 2,
+        "overlap_comm": true,
+        "contiguous_gradients": true,
+        "sub_group_size": 1e9,
+        "reduce_bucket_size": "auto",
+        //##Adding this part to zero2.json###
+        "offload_optimizer": {
+            "device": "cpu",
+            "pin_memory": true
+        }
+        //###################################
+    },
+~~~
+### 3. Action value is <font color=red>Nan</font> during inference which happens at the last denoising in "policy_heads/models/transformer_diffusion/modeling_dit_diffusion.py". 
+This is a precision overflow problem in "[DDIMScheduler](https://github.com/huggingface/diffusers/blob/v0.11.1/src/diffusers/schedulers/scheduling_ddim.py)" from diffusers.schedulers.scheduling_ddim. The easiest way is adding a line in "scheduling_ddim.py"
+~~~python
+        ###other code###
+        else:
+            raise NotImplementedError(f"{beta_schedule} does is not implemented for {self.__class__}")
+        
+        ### newly added ###############################
+        self.betas = self.betas.to(dtype=torch.float32)
+        ###############################################
+        self.alphas = 1.0 - self.betas
+        self.alphas_cumprod = torch.cumprod(self.alphas, dim=0)
+        ###other code###
+~~~
+
+
 
 ## Acknowledgement
 We build our project based on:
