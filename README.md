@@ -38,7 +38,8 @@ pip install flash-attn --no-build-isolation
 ```
 
 ## Data Preparation
-1. Our data format is the same as [act](https://github.com/MarkFzp/act-plus-plus), so you need to transfer your data into h5py format. You can refer to function "generate_h5" in [data_preprocess_scripts/rlds_to_h5py.py](https://github.com/juruobenruo/DexVLA/tree/main/data_preprocess_scripts) which is used to transfer the data from rlds format to h5py format.
+1. Our data format is the same as [act](https://github.com/MarkFzp/act-plus-plus), so you need to transfer your data into h5py format. You can refer to function "generate_h5" in [data_preprocess_scripts/rlds_to_h5py.py](
+https://github.com/juruobenruo/DexVLA/blob/main/data_preprocess_scripts/rlds_to_h5py.py) which is used to transfer the data from rlds format to h5py format.
 ```angular2html
 # h5 data structure
 root
