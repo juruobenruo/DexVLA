@@ -32,15 +32,12 @@ from torch.nn import CrossEntropyLoss, LayerNorm
 from transformers.activations import ACT2FN
 from transformers.cache_utils import Cache, SlidingWindowCache, StaticCache
 from transformers.generation import GenerationMixin
-from transformers.modeling_attn_mask_utils import (
-    AttentionMaskConverter,
-)
+from transformers.modeling_attn_mask_utils import AttentionMaskConverter
 from transformers.modeling_outputs import (
     BaseModelOutputWithPast,
     ModelOutput,
 )
 from ..utils.fusion_modules import *
-from types import SimpleNamespace
 
 from transformers.modeling_rope_utils import ROPE_INIT_FUNCTIONS
 from transformers.modeling_utils import PreTrainedModel
@@ -53,7 +50,9 @@ from transformers.utils import (
     replace_return_docstrings,
 )
 from .configuration_qwen2_vla import Qwen2VLAConfig, Qwen2VLAVisionConfig
+from transformers import AutoConfig, AutoModel
 import gc
+
 
 if is_flash_attn_2_available():
     from flash_attn import flash_attn_varlen_func
@@ -62,7 +61,6 @@ if is_flash_attn_2_available():
 else:
     flash_attn_varlen_func = None
 
-from transformers import AutoConfig, AutoModel
 
 logger = logging.get_logger(__name__)
 
@@ -120,7 +118,6 @@ class Qwen2VLRotaryEmbedding(nn.Module):
         config: Optional[Qwen2VLAConfig] = None,
     ):
         super().__init__()
-        # TODO (joao): remove the `if` below, only used for BC
         self.rope_kwargs = {}
         if config is None:
             logger.warning_once(
@@ -164,7 +161,7 @@ class Qwen2VLRotaryEmbedding(nn.Module):
             inv_freq, self.attention_scaling = self.rope_init_fn(
                 self.config, device, seq_len=seq_len, **self.rope_kwargs
             )
-            self.register_buffer("inv_freq", inv_freq, persistent=False)  # TODO joao: may break with compilation
+            self.register_buffer("inv_freq", inv_freq, persistent=False)  
             self.max_seq_len_cached = seq_len
 
         if seq_len < self.original_max_seq_len and self.max_seq_len_cached > self.original_max_seq_len:  # reset
@@ -624,7 +621,6 @@ class Qwen2VLFlashAttention2(Qwen2VLAttention):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # TODO: Should be removed once Flash Attention for RoCm is bumped to 2.1.
         # flash_attn<2.1 generates top-left aligned causal mask, while what is needed here is bottom-right alignement, that was made default for flash_attn>=2.1. This attribute is used to handle this difference. Reference: https://github.com/Dao-AILab/flash-attention/releases/tag/v2.1.0.
         # Beware that with flash_attn<2.1, using q_seqlen != k_seqlen (except for the case q_seqlen == 1) produces a wrong mask (top-left).
         self._flash_attn_uses_top_left_mask = not is_flash_attn_greater_or_equal_2_10()
@@ -788,7 +784,6 @@ class Qwen2VLSdpaAttention(Qwen2VLAttention):
         position_embeddings: Optional[Tuple[torch.Tensor, torch.Tensor]] = None,  # will become mandatory in v4.46
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[Tuple[torch.Tensor]]]:
         if output_attentions:
-            # TODO: Improve this warning with e.g. `model.config.attn_implementation = "manual"` once this is implemented.
             logger.warning_once(
                 "Qwen2VLModel is using Qwen2VLSdpaAttention, but `torch.nn.functional.scaled_dot_product_attention` does not support `output_attentions=True`. Falling back to the manual attention implementation, "
                 'but specifying the manual implementation will be required from Transformers version v5.0.0 onwards. This warning can be removed using the argument `attn_implementation="eager"` when loading the model.'
@@ -1334,8 +1329,6 @@ class Qwen2VLModel(Qwen2VLPreTrainedModel):
             past_key_values (`Cache`):
                 The cache class that is being used currently to generate
         """
-        #print('@'*50)
-        #print(attention_mask.shape)
         if attention_mask is not None and attention_mask.dim() == 4:
             # In this case we assume that the mask comes already in inverted form and requires no inversion or slicing.
             causal_mask = attention_mask
@@ -1472,6 +1465,7 @@ class Qwen2VLForConditionalGenerationForVLA(Qwen2VLPreTrainedModel, GenerationMi
         self.input_action_proj = ActionProjector(config.hidden_size, config.hidden_size)
 
         if self.using_film:
+            # Initialize projection layers and condition modulation layers
             self.reasoning_action_proj = ActionProjector(config.hidden_size, config.hidden_size)
             self.reasoning_film = FiLM(feature_dim=config.hidden_size, condition_dim=config.hidden_size)
 
@@ -1842,10 +1836,9 @@ class Qwen2VLForConditionalGenerationForVLA(Qwen2VLPreTrainedModel, GenerationMi
 
         ret = self.policy_head(actions=actions, hidden_states=action_hidden_states, states=states, is_pad=is_pad)
 
-
-        loss = {'loss': ret['loss'],
-                     'llm_loss': (torch.ones(1)*(-100)).to(ret['loss'].dtype).squeeze(0),
-                     'action_loss': ret['loss']}
+        loss = {'loss': ret['loss'] + self.llm_loss_weight * llm_loss,
+                'llm_loss': llm_loss,
+                'action_loss': ret['loss']}
         if not return_dict:
             output = (logits,) + outputs[1:]
             return (loss,) + output if loss is not None else output
@@ -1872,6 +1865,9 @@ class Qwen2VLForConditionalGenerationForVLA(Qwen2VLPreTrainedModel, GenerationMi
         )
 
     def film_forward(self, labels, input_ids, hidden_states):
+        """
+        Perform the forward pass for the film module.
+        """
         inputs_index = labels[:, :] == -100
         inputs_index = inputs_index.int()
 
@@ -1880,7 +1876,6 @@ class Qwen2VLForConditionalGenerationForVLA(Qwen2VLPreTrainedModel, GenerationMi
         input_embeddings = []
         reasoning_embeddings = []
         identity = []
-        gt_reasoning_embeddings = []
         for i in range(indexs.shape[0]):
             end = indexs[i] + 1
             temp = input_ids[i] == 151643  # pad token id for qwen2_vl
@@ -2029,12 +2024,11 @@ class Qwen2VLForConditionalGenerationForVLA(Qwen2VLPreTrainedModel, GenerationMi
         action_hidden_states = None
 
         if self.using_film:
-            action_hidden_states = self.film_forward(labels=torch.zeros_like(output_ids),
+            action_hidden_states = self.film_forward(labels=torch.ones_like(output_ids),
                                                      input_ids=output_ids,
                                                      hidden_states=torch.cat(last_hidden_states, dim=1))
 
 
-        # print(outputs)
         action = self.policy_head(actions, action_hidden_states, states.to(all_hidden_states.dtype), is_pad)
         return action, outputs_text
 
@@ -2058,7 +2052,7 @@ class Qwen2VLForConditionalGenerationForVLA(Qwen2VLPreTrainedModel, GenerationMi
                 tinyvla=True)
 
         all_hidden_states = torch.mean(all_hidden_states, dim=1).unsqueeze(1)
-        # print(outputs)
+        
         action = self.policy_head(actions, all_hidden_states, states.to(all_hidden_states.dtype), is_pad)
         return action, "tinyvla no output"
 

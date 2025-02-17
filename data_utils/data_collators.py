@@ -1,20 +1,10 @@
-import copy
-from dataclasses import dataclass, field, fields, asdict
-import json
-import logging
-import pathlib
-from typing import Dict, Optional, Sequence, List
-import sys
+from dataclasses import dataclass
+from typing import Dict, Sequence
 import torch
-
 import transformers
 import gc
-
-from PIL import Image
 import numpy as np
 import os
-from qwen_vl_utils import process_vision_info
-from qwen_vl_utils import fetch_image, fetch_video
 
 @dataclass
 class Qwen2VLADataCollatorForSupervisedDataset(object):
@@ -28,7 +18,6 @@ class Qwen2VLADataCollatorForSupervisedDataset(object):
     # @profile
     def __call__(self, instances: Sequence[Dict]) -> Dict[str, torch.Tensor]:
         input_ids = [torch.flip(instance['input_ids'].squeeze(0), dims=[0]) for instance in instances]
-        attention_mask = [torch.flip(instance['attention_mask'].squeeze(0), dims=[0]) for instance in instances]
         labels = [torch.flip(instance['labels'].squeeze(0), dims=[0]) for instance in instances]
         if self.video:
             video_grid_thw = torch.stack([instances['video_grid_thw'] for instances in instances])
@@ -58,19 +47,7 @@ class Qwen2VLADataCollatorForSupervisedDataset(object):
             image_grid_thw = image_grid_thw.reshape(b * image_grid_thw.shape[1], image_grid_thw.shape[2])
             pixel_values = pixel_values.reshape(b * pixel_values.shape[1], pixel_values.shape[2])
 
-        attention_mask = input_ids.ne(self.tokenizer.pad_token_id),
-        # attention_mask = torch.nn.utils.rnn.pad_sequence(labels,
-        #                                          batch_first=True,
-        #                                          padding_value=1)
-
-        # max_length = max([each.shape[-1] for each in input_ids])
-        # pad_id = self.tokenizer.pad_token_id
-        # for idx,_ in enumerate(input_ids):
-        #     length = input_ids[idx].shape[-1]
-        #     padd = torch.ones((1, max_length-length), dtype=torch.long, device=input_ids[idx].device)
-        #     input_ids[idx] = torch.cat((padd*pad_id,input_ids[idx]), dim=-1)
-        #     attention_mask[idx] = torch.cat((padd,attention_mask[idx]), dim=-1)
-        #     labels[idx] = torch.cat((padd*-100,labels[idx]), dim=-1)
+        attention_mask = input_ids.ne(self.tokenizer.pad_token_id)
             
         if not isinstance(instances[0]['action'], torch.Tensor):
             actions = torch.tensor(np.array([instance['action'] for instance in instances]))
@@ -80,14 +57,12 @@ class Qwen2VLADataCollatorForSupervisedDataset(object):
             states = torch.stack([instance['state'] for instance in instances])
 
         is_pad_all = torch.stack([instance['is_pad'] for instance in instances])
-        
-        #print("#"*60)
-        #print(attention_mask.shape)
+
+        assert len(attention_mask.shape) == 2, "Attention mask shape should be (batch_size, seq_len)"
         #exit(0)
         batch = dict(
             input_ids=input_ids,
-            # token_type_ids=model_inputs['token_type_ids'],
-            attention_mask=attention_mask[0],
+            attention_mask=attention_mask,
             labels=labels,
             image_grid_thw=image_grid_thw,
             pixel_values_videos=pixel_values_videos,
@@ -95,8 +70,7 @@ class Qwen2VLADataCollatorForSupervisedDataset(object):
             states=states,
             video_grid_thw=video_grid_thw,
             pixel_values=pixel_values,
-            is_pad=is_pad_all,
-            # attention_mask=input_ids.ne(temp_pad_token_id),
+            is_pad=is_pad_all
         )
         del input_ids
         del attention_mask

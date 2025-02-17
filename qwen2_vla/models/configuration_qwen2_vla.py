@@ -205,10 +205,6 @@ class Qwen2VLAConfig(PretrainedConfig):
         rope_scaling=None,
         # For loading policy head
         policy_head_type='dit_diffusion_policy',  # dit_diffusion_policy
-        policy_head_size='DiT_L',
-        action_dim=10,
-        state_dim=7,
-        non_lora_lr=1e-4,
         **kwargs,
     ):
         if isinstance(vision_config, dict):
@@ -225,21 +221,8 @@ class Qwen2VLAConfig(PretrainedConfig):
         self.use_sliding_window = use_sliding_window
         self.sliding_window = sliding_window
         self.max_window_layers = max_window_layers
+        self.policy_head_type = policy_head_type # for loading policy head
 
-        # for loading policy head
-        self.policy_head_type = policy_head_type
-        # if policy_head_type == 'dit_diffusion_policy':
-        #     # self.policy_head_size = kwargs.get("policy_head_size", "none")
-        #     self.policy_head_size = policy_head_size
-        #     # self.policy_head_config = register_configuration_class(self.policy_head_type, model_size=policy_head_size)
-        #     self.policy_head_config = AutoConfig.for_model(model_type=self.policy_head_type,
-        #                                                    model_size=self.policy_head_size,
-        #                                                    global_cond_dim=hidden_size, action_dim=action_dim,
-        #                                                    state_dim=state_dim)
-        # elif policy_head_type == 'unet_diffusion_policy':
-        #     self.policy_head_config = AutoConfig.for_model(model_type=self.policy_head_type,
-        #                                                    global_cond_dim=hidden_size, action_dim=action_dim,
-        #                                                    state_dim=state_dim)
         # for backward compatibility
         if num_key_value_heads is None:
             num_key_value_heads = num_attention_heads
@@ -257,7 +240,6 @@ class Qwen2VLAConfig(PretrainedConfig):
         # BC: if there is a 'type' field, move it to 'rope_type'.
         # and change type from 'mrope' to 'default' because `mrope` does defeault RoPE calculations
         # one can set it to "linear"/"dynamic" etc. to have scaled RoPE
-        # TODO: @raushan update config in the hub
         if self.rope_scaling is not None and "type" in self.rope_scaling:
             if self.rope_scaling["type"] == "mrope":
                 self.rope_scaling["type"] = "default"

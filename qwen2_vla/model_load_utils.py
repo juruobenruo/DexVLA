@@ -49,7 +49,6 @@ def load_model(config=None, qwen2_vla_config=None, rank0_print=print, tokenizer=
     training_args = config['training_args']
     data_args = config['data_args']
     action_args = config['action_head_args']
-    load_pretrain_align_module = False
     if training_args.load_pretrain: # loading pretrained weights
         pass
         kwargs = {"device_map": "cuda", "torch_dtype": torch.bfloat16}
@@ -83,41 +82,23 @@ def load_model(config=None, qwen2_vla_config=None, rank0_print=print, tokenizer=
                 _fast_init=False,
                 # attn_implementation="flash_attention_2",
             )
-        # rank0_print(f'{RED} Only loading lora weights from pretrained model because the stage_1(pretrain) only lora the VLM {RESET}')
-
         rank0_print(f'Loading pretrained additional <<{model_path}/non_lora_trainables.bin>> weights...')
         if os.path.exists(os.path.join(model_path, 'non_lora_trainables.bin')):
             non_lora_trainables = torch.load(os.path.join(model_path, 'non_lora_trainables.bin'), map_location='cpu')
         else:
             raise f"there is no non_lora_trainables.bin in {model_path}"
 
-            non_lora_trainables = load_from_hf(model_path, 'non_lora_trainables.bin')
         non_lora_trainables = {(k[11:] if k.startswith('base_model.') else k): v for k, v in
                                non_lora_trainables.items()}
         if any(k.startswith('model.policy_head.') for k in non_lora_trainables):
             non_lora_trainables = {(k[6:] if k.startswith('model.') else k): v for k, v in
                                    non_lora_trainables.items()}
 
-        # 删除lora相关的参数
+        # Delete the parameters related to Lora
         keys_to_del = []
         for k, v in non_lora_trainables.items():
             if 'lora' in k:
                 keys_to_del.append(k)
-
-        # keys_to_del = ['policy_head.final_conv.1.weight', 'policy_head.final_conv.1.bias']
-        # todo
-        # if config['action_head_args'].action_dim == 144:
-        #     keys_to_del = []
-        #     rank0_print(f"{RED}Deleting some modules to adapt for bimanual setting....{RESET}")
-        #     for name in ['policy_head.combine.weight','policy_head.down_modules.0.0.blocks.0.block.0.weight', 'policy_head.down_modules.0.0.residual_conv.weight',
-        #                  'policy_head.final_conv.1.weight', 'policy_head.final_conv.1.bias']:
-        #         keys_to_del.append(name)
-        #     rank0_print(">>"*30)
-        #     rank0_print(f"Reinitializing weights of followings:{keys_to_del}")
-        # print(keys_to_del)
-        # print("#"*40)
-        # print(pretrain.keys())
-        # exit(0)
         for key in keys_to_del:
             del non_lora_trainables[key]
 
@@ -130,7 +111,7 @@ def load_model(config=None, qwen2_vla_config=None, rank0_print=print, tokenizer=
         model = model.merge_and_unload()
         rank0_print('Model is loaded...')
         model.to(torch.bfloat16)
-    # else:
+    
     else:
         kwargs = {"device_map": "cuda", "torch_dtype": torch.bfloat16}
         if config['training_args'].flash_attn:
@@ -168,27 +149,20 @@ def load_model(config=None, qwen2_vla_config=None, rank0_print=print, tokenizer=
                 keys_to_del_dit.append(k)
             if 'cond_obs_emb' in k:
                 keys_to_del_dit.append(k)
+        pretrained_action_dim = pretrain_dit_weights['noise_pred_net.x_embedder.weight'].shape[-1]
+        if config['action_head_args'].action_dim != pretrained_action_dim:
+            rank0_print(
+                f"{RED}Current Action Dim is {config['action_head_args'].action_dim} != Pretrained Action Dim {pretrained_action_dim}. Initializing a new head and state encoder.... {RESET}")
+            # del pretrained weights of action head
+            for each in ["noise_pred_net.x_embedder.weight", "noise_pred_net.final_layer.linear.weight", "noise_pred_net.final_layer.linear.bias", 'combine.0.weight', "combine.0.bias"]:
+                if each not in keys_to_del_dit:
+                    keys_to_del_dit.append(each)
         for k in keys_to_del_dit:
             del pretrain_dit_weights[k]
         pretrain_dit_weights = {k[15:] if k.startswith('noise_pred_net.') else k: v for k, v in pretrain_dit_weights.items()}
 
         model.policy_head.load_state_dict(pretrain_dit_weights, strict=False)
 
-    if load_pretrain_align_module:
-        rank0_print(f'{RED}>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>Loading Align Module weights...<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<{RESET}')
-        pretrain_path = config['model_args'].model_pretrain
-        align_module_weights = torch.load(os.path.join(pretrain_path, 'non_lora_trainables.bin'),)
-        keys_to_del_dit = []
-        for k in align_module_weights.keys():
-            if 'policy_head' in k: # del weights of vision backbones
-                keys_to_del_dit.append(k)
-            if 'embed_tokens' in k:
-                keys_to_del_dit.append(k)
-
-        for k in keys_to_del_dit:
-            del align_module_weights[k]
-
-        model.load_state_dict(align_module_weights, strict=False)
 
     model.config.use_cache = False
 
@@ -215,7 +189,6 @@ def load_model(config=None, qwen2_vla_config=None, rank0_print=print, tokenizer=
             torch.float32 if training_args.fp16 else (torch.bfloat16 if training_args.bf16 else torch.float32))
         model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=training_args.gradient_checkpointing)
 
-    # TODO: https://huggingface.co/microsoft/phi-2/discussions/31. But in this code, setting gradient_checkpointing=True, it doesn't raise any error
     if training_args.gradient_checkpointing:
         if hasattr(model, "enable_input_require_grads"):
             model.enable_input_require_grads()
@@ -253,23 +226,14 @@ def load_model(config=None, qwen2_vla_config=None, rank0_print=print, tokenizer=
 
     model.config.tune_mm_mlp_adapter = model_args.tune_mm_mlp_adapter = training_args.tune_mm_mlp_adapter
 
-    # if not model_args.tune_mm_mlp_adapter:
-    #     for p in model.multi_modal_projector.parameters():
-    #         p.requires_grad = False
-    # else:
-    #     for p in model.multi_modal_projector.parameters():
-    #         p.requires_grad = True
-    if config['model_args'].with_llm_head and not model_args.freeze_backbone:
+    if not model_args.freeze_backbone:
         try:
             model.lm_head.requires_grad_(True)
         except Exception as e:
             print(e)
-            model.language_model.lm_head.requires_grad_(True)
-    # action head需要训练
+    # action head need to be trained
     model.policy_head.requires_grad_(True)
 
-    if config['model_args'].with_text_fcs:
-        model.text_hidden_fcs.requires_grad_(True)
     if config['model_args'].using_film:
         model.input_action_proj.requires_grad_(True)
         model.reasoning_action_proj.requires_grad_(True)
@@ -413,7 +377,7 @@ def load_merge_lora_weights(model_path=None, model_base=None, kwargs=None):
         non_lora_trainables = {(k[6:] if k.startswith('model.') else k): v for k, v in
                                non_lora_trainables.items()}
 
-    # 删除lora相关的参数
+    # Delete the parameters related to Lora
     keys_to_del = []
     for k, v in non_lora_trainables.items():
         if 'lora' in k:
@@ -445,37 +409,15 @@ def load_model_for_eval(model_path, model_base, load_8bit=False, load_4bit=False
         )
     else:
         kwargs['torch_dtype'] = torch.bfloat16
-        if policy_config['save_model']:
-            kwargs['torch_dtype'] = torch.bfloat16
+    
+    if 'qwen2' in model_path.lower():
 
-    if '72B' in model_base:
-        kwargs = {
-            "device_map":"cpu",
-            "max_memory":{0:"45GiB", 1:"45GiB", "cpu":"80GiB"},
-            "offload_folder": "/home/eai/wjj/qwen2_vla/offload",
-            "offload_state_dict": True,
-        }
-        with open(os.path.join(model_base, 'device_map.json'), 'r') as f:
-            device_map = json.load(f)
-        kwargs['device_map'] = device_map
-
-    # if os.path.exists(os.path.join(model_path, 'merge_weights')) and len(os.listdir(os.path.join(model_path, 'merge_weights'))) > 1:
-    #     kwargs['torch_dtype'] = torch.bfloat16
-    #     model = AutoModelForCausalLM.from_pretrained(os.path.join(model_path, 'merge_weights'), low_cpu_mem_usage=True,
-    #                                                   **kwargs)
-    #     tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=False)
-    #     model = model.to(torch.bfloat16)
-    if False:
-        pass
-    elif 'qwen2' in model_path.lower():
-        # Load LLaVA-Phi model
-        if 'lora' in model_path.lower() and model_base is None:
+        if 'lora' in model_path.lower() and model_base is None: # only for lora finetuning
             warnings.warn(
                 'There is `lora` in model name but no `model_base` is provided. If you are loading a LoRA model, please provide the `model_base` argument.')
-        if 'lora' in model_path.lower() and model_base is not None:
+        if 'lora' in model_path.lower() and model_base is not None: # only for lora finetuning
             if policy_config['pretrain_path'] is not None:
                 ps = model_path.split('/')
-                # parent_model_path = '/'.join(ps[:-1])
                 if not os.path.exists(os.path.join(policy_config['pretrain_path'], 'pretrain_merge_weights')):
                     print("merging pretrained weights.......")
                     model, tokenizer = load_merge_lora_weights(model_path=policy_config['pretrain_path'], model_base=model_base, kwargs=kwargs)
@@ -484,34 +426,13 @@ def load_model_for_eval(model_path, model_base, load_8bit=False, load_4bit=False
                     model.save_pretrained(
                         os.path.join(policy_config['pretrain_path'], 'pretrain_merge_weights'))
                     tokenizer.save_pretrained(os.path.join(policy_config['pretrain_path'], 'pretrain_merge_weights'))
-                # multi_modal_processor = AutoProcessor.from_pretrained(parent_model_path, use_fast=False)
-                # multi_modal_processor.save_pretrained(os.path.join(parent_model_path, 'pretrain_merge_weights'))
+
                 print("loading pretrained weights as base model.......")
                 model, tokenizer = load_merge_lora_weights(model_path=model_path, model_base=os.path.join(policy_config['pretrain_path'], 'pretrain_merge_weights'), kwargs=kwargs)
 
             else:
                 model, tokenizer = load_merge_lora_weights(model_path=model_path, model_base=model_base, kwargs=kwargs)
 
-            if policy_config['save_model']:
-                print(f"#####################################Saving merged weights of model in {kwargs['torch_dtype']}.#####################################")
-                os.makedirs(os.path.join(model_path, 'merge_weights'), exist_ok=True)
-                model.save_pretrained(
-                    os.path.join(model_path, 'merge_weights'))
-                tokenizer.save_pretrained(os.path.join(model_path, 'merge_weights'))
-                skip_params = [
-                    "input_action_proj",
-                    "policy_head",
-                    "reasoning_action_proj",
-                    "reasoning_film",
-                ]
-                head_param = {}
-                for k,v in model.named_parameters():
-                    if any(skip_param in k.lower() for skip_param in skip_params):
-                        head_param[k] = v
-                torch.save(head_param, os.path.join(model_path, 'merge_weights/head_params.bin'))
-                multi_modal_processor = AutoProcessor.from_pretrained(model_path, use_fast=False)
-                multi_modal_processor.save_pretrained(os.path.join(model_path, 'merge_weights'))
-                exit(0)
 
             # model = model.to(torch.bfloat16)
         elif model_base is not None:
@@ -552,10 +473,7 @@ def load_model_for_eval(model_path, model_base, load_8bit=False, load_4bit=False
             tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=False)
             model = AutoModelForCausalLM.from_pretrained(model_path, low_cpu_mem_usage=True, **kwargs)
 
-    print("aaaa")
-    # image_processor = AutoImageProcessor.from_pretrained(model_path, use_fast=False)
-    # multi_modal_processor = Qwen2VLProcessor.from_pretrained(model_path, use_fast=False)
-    # multi_modal_processor.image_processor = image_processor
+
     multi_modal_processor = AutoProcessor.from_pretrained(model_path, use_fast=False)
     if hasattr(model.config, "max_sequence_length"):
         context_len = model.config.max_sequence_length

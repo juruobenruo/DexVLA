@@ -12,15 +12,17 @@ os.environ["WANDB_DISABLED"] = "true"
 from data_utils.utils import load_data  # data functions
 from data_utils.utils import set_seed  # helper functions
 from policy_heads import *
+from dataclasses import dataclass, field, fields, asdict
+from typing import Dict, Optional, Sequence, List
 
 from aloha_scripts.constants import TASK_CONFIGS
 from qwen2_vla.utils.robot_data_processor import Qwen2VLAProcess
 from transformers import AutoConfig, AutoModel, AutoProcessor
 from qwen2_vla import QWen2VLATrainer
-from data_utils.dataset import *
+import transformers
 import IPython
 e = IPython.embed
-from data_utils.dataset import Qwen2VLADataCollatorForSupervisedDataset
+from data_utils.data_collators import Qwen2VLADataCollatorForSupervisedDataset
 from qwen2_vla import model_load_utils as ml_utils
 import torch
 local_rank = None
@@ -155,9 +157,6 @@ def parse_param():
     local_rank = training_args.local_rank
     compute_dtype = (torch.float16 if training_args.fp16 else (torch.bfloat16 if training_args.bf16 else torch.float32))
 
-    #     print("##"*50)
-    #     print(training_args.logging_dir)
-
     bnb_model_from_pretrained_args = {}
     if training_args.bits in [4, 8]:
         from transformers import BitsAndBytesConfig
@@ -268,12 +267,13 @@ def main(all_config=None, model_config=None):
     all_config['camera_names'] = camera_names
     all_config['episode_len'] = episode_len
 
-    # todo this is pythia's tokenizer not paligemma
+    # load qwen2_vl tokenizer
     tokenizer = transformers.AutoTokenizer.from_pretrained(
         all_config['model_args'].model_name_or_path,
     )
+    # load qwen2_vl input processor
     multimodal_processor = AutoProcessor.from_pretrained(all_config['model_args'].model_name_or_path)
-    # model = None
+    # load dexvla model
     model, data_args = ml_utils.load_model(config=all_config, qwen2_vla_config=model_config, rank0_print=rank0_print, tokenizer=tokenizer)
 
     rank0_print(f"{RED} Using Qwen2VLA as VLA backbone {RESET}")
@@ -315,8 +315,7 @@ if __name__ == '__main__':
     ckpt = os.path.join(config['training_args'].output_dir, f"checkpoint-{config['training_args'].save_steps}")
 
     # resume_from_training
-    if os.path.exists(ckpt):
-        config['training_args'].resume_from_checkpoint = True
+    if os.path.exists(ckpt) and config['training_args'].resume_from_checkpoint:
         rank0_print(f"{RED}Resuming Training............{RESET}")
     main(all_config=config, model_config=model_config)
     pass

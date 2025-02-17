@@ -5,9 +5,9 @@ LLM_MODEL_SIZE=2B
 ACTION_HEAD=dit_diffusion_policy  #act #unet_diffusion_policy dit_diffusion_policy
 
 DIT_PRETRAIN=/path/to/pretrained/ScaleDP
-MNOP=/path/to/pretrained/qwen2_vl
+MNOP=/path/to/pretrained/qwen2_vl # official qwen2_vl weights
 
-TASKNAME=3_cameras_all_data_1_25
+TASKNAME=example_tasks
 
 OUTPUT=/path/to/save/dir
 
@@ -18,15 +18,12 @@ deepspeed --master_port 29604 --num_gpus=8 --num_nodes=1 ./train_vla.py \
   --state_dim 14 \
   --flash_attn True \
   --chunk_size 50 \
-  --load_pretrain False \
   --load_pretrain_dit True \
   --pretrain_dit_path $DIT_PRETRAIN \
   --policy_head_type $ACTION_HEAD \
   --policy_head_size "DiT_H" \
   --image_size_stable "(320,240)" \
   --image_size_wrist "(320,240)" \
-  --lora_r 64 \
-  --lora_alpha 256 \
   --task_name ${TASKNAME} \
   --model_name_or_path $MNOP \
   --version v0 \
@@ -58,7 +55,6 @@ deepspeed --master_port 29604 --num_gpus=8 --num_nodes=1 ./train_vla.py \
   --logging_dir $OUTPUT/log | tee $OUTPUT/log.log
 
 for dir in "$OUTPUT"/*/ ; do
-    # 检查文件夹名称是否包含'checkpoint'
     if [[ "$(basename "$dir")" == *"checkpoint"* ]]; then
         cp ${MNOP}/preprocessor_config.json $dir
         cp ${MNOP}/chat_template.json $dir
