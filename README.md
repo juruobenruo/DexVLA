@@ -8,7 +8,7 @@ DexVLA: Vision-Language Model with Plug-In Diffusion Expert for Visuomotor Polic
 
 
 ## 📰 News
-* **`Feb. 09th, 2025`**: **DexVLA** is out! **Paper** can be found [here](https://arxiv.org/abs/2502.05855). The **project web** can be found [here](https://dex-vla.github.io/).
+* **`Feb. 17th, 2025`**: **DexVLA** is out! **Paper** can be found [here](https://arxiv.org/abs/2502.05855). The **project web** can be found [here](https://dex-vla.github.io/).
 
 ## Contents
 - [Install](#install)
@@ -21,7 +21,7 @@ DexVLA: Vision-Language Model with Plug-In Diffusion Expert for Visuomotor Polic
 
 1. Clone this repository and navigate to diffusion-vla folder
 ```bash
-git clone https://github.com/lesjie-wen/dexvla.git
+git clone https://github.com/juruobenruo/dexvla.git
 ```
 Install Packages
 ```Shell
@@ -38,7 +38,7 @@ pip install flash-attn --no-build-isolation
 ```
 
 ## Data Preparation
-1. Our data format is the same as [act](https://github.com/MarkFzp/act-plus-plus), so you need to transfer your data into h5py format. You can refer to function "generate_h5" in [data_preprocess_scripts/rlds_to_h5py.py](https://github.com/lesjie-wen/tinyvla/blob/main/data_utils/rlds_to_h5py.py) which is used to transfer the data from rlds format to h5py format.
+1. Our data format is the same as [act](https://github.com/MarkFzp/act-plus-plus), so you need to transfer your data into h5py format. You can refer to function "generate_h5" in [data_preprocess_scripts/rlds_to_h5py.py](https://github.com/juruobenruo/DexVLA/tree/main/data_preprocess_scripts) which is used to transfer the data from rlds format to h5py format.
 ```angular2html
 # h5 data structure
 root
@@ -54,7 +54,7 @@ root
       |-qpos (100,7)
       |-qvel (100,7)
 ```
-2. You have to add one entry in [constants.py](https://github.com/lesjie-wen/dexvla/blob/main/aloha_scripts/constants.py) to specify the path of your data as follows.
+2. You have to add one entry in [constants.py](https://github.com/juruobenruo/DexVLA/blob/main/aloha_scripts/constants.py) to specify the path of your data as follows.
 ```python
     'example_task_name': { # for local debug
         'dataset_dir': [

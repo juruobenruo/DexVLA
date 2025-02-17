@@ -148,6 +148,25 @@ def rank0_print(*args):
         print(*args)
 
 def parse_param():
+    """
+    Parse command line arguments and initialize configuration for model training.
+
+    This function parses command line arguments into dataclass instances and sets up
+    configuration for model training, including quantization settings and policy head
+    configuration.
+
+    Returns:
+        tuple:
+            - model_args (ModelArguments): Model architecture and configuration arguments
+            - data_args (DataArguments): Dataset and data processing arguments  
+            - training_args (TrainingArguments): Training hyperparameters and settings
+            - action_head_args (ActionHeadArguments): Action head model configuration
+            - config (AutoConfig): Complete model configuration object
+            - bnb_model_from_pretrained_args (dict): Quantization configuration for model loading
+
+    Raises:
+        NotImplementedError: If an unsupported policy head type is specified
+    """
     global local_rank
 
     parser = transformers.HfArgumentParser(
@@ -204,8 +223,26 @@ def parse_param():
         rank0_print(f"{RED} This is TinyVLA, Please Check Using_film equals False:Using_film {model_args.using_film} {RESET}")
         time.sleep(1)
     return model_args, data_args, training_args, action_head_args, config, bnb_model_from_pretrained_args
-def train_bc(train_dataset=None, val_dataset=None, model=None, config=None, sampler_params=None, tokenizer=None, processor=None):
 
+def train_bc(train_dataset=None, val_dataset=None, model=None, config=None, sampler_params=None, tokenizer=None, processor=None):
+    """
+    Train a behavior cloning model using the QWen2VLA architecture.
+
+    Args:
+        train_dataset: Dataset object containing training data
+        val_dataset: Dataset object containing validation data
+        model: Pre-initialized QWen2VLA model
+        config (dict): Configuration dictionary containing:
+            - training_args: Training arguments including fp16/bf16 settings, lora configs
+            - data_args: Data processing arguments including history_images_length
+        sampler_params: Parameters for the data sampler
+        tokenizer: Tokenizer for processing text inputs
+        processor: Processor for handling multimodal inputs
+
+    Returns:
+        None. The trained model and states are saved to the output directory
+        specified in training_args.
+    """
     set_seed(config['training_args'].seed)
     compute_dtype = (torch.float16 if training_args.fp16 else (torch.bfloat16 if config['training_args'].bf16 else torch.float32))
     if config['data_args'].history_images_length > 2:
@@ -254,6 +291,21 @@ def train_bc(train_dataset=None, val_dataset=None, model=None, config=None, samp
 
 
 def main(all_config=None, model_config=None):
+    """
+    Main training function for the VLA (Vision-Language-Action) model.
+
+    Args:
+        all_config (dict): Configuration dictionary containing:
+            - model_args: Model architecture and loading arguments
+            - data_args: Data processing and dataset arguments
+            - training_args: Training hyperparameters and settings
+            - action_head_args: Action head model configuration
+        model_config (AutoConfig): Model configuration object for the Qwen2VLA model
+
+    Returns:
+        None. The trained model and statistics are saved to the output directory
+        specified in training_args.
+    """
     set_seed(1)
     task_config = TASK_CONFIGS[all_config['data_args'].task_name]
     dataset_dir = task_config['dataset_dir']
