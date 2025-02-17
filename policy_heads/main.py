@@ -84,6 +84,23 @@ def get_args_parser():
 
 
 def build_ACT_model_and_optimizer(args_override):
+    """
+    Build ACT model and its optimizer.
+    
+    This function creates an ACT (Action Transformer) model and configures its optimizer
+    with different learning rates for backbone and non-backbone parameters.
+    
+    Args:
+        args_override (dict): Dictionary of argument overrides that will be applied
+            to default arguments from get_args_parser().
+    
+    Returns:
+        tuple: A tuple containing:
+            - model (nn.Module): The constructed ACT model moved to CUDA device
+            - optimizer (torch.optim.AdamW): AdamW optimizer configured with:
+                - Different learning rates for backbone and non-backbone parameters
+                - Weight decay as specified in arguments
+    """
     parser = argparse.ArgumentParser('DETR training and evaluation script', parents=[get_args_parser()])
     args = parser.parse_args()
 
@@ -107,6 +124,23 @@ def build_ACT_model_and_optimizer(args_override):
 
 
 def build_CNNMLP_model_and_optimizer(args_override):
+    """
+    Build CNNMLP model and its optimizer.
+    
+    This function creates a CNNMLP model and configures its optimizer
+    with different learning rates for backbone and non-backbone parameters.
+    
+    Args:
+        args_override (dict): Dictionary of argument overrides that will be applied
+            to default arguments from get_args_parser().
+    
+    Returns:
+        tuple: A tuple containing:
+            - model (nn.Module): The constructed CNNMLP model moved to CUDA device
+            - optimizer (torch.optim.AdamW): AdamW optimizer configured with:
+                - Different learning rates for backbone and non-backbone parameters
+                - Weight decay as specified in arguments
+    """
     parser = argparse.ArgumentParser('DETR training and evaluation script', parents=[get_args_parser()])
     args = parser.parse_args()
 

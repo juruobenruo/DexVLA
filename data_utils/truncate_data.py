@@ -17,6 +17,20 @@ TRUNCATE_LEN = 2250
 
 
 def compress_dataset(input_dataset_path, output_dataset_path):
+    """
+    Truncate and save HDF5 dataset to a new file with specified length.
+
+    This function reads an HDF5 dataset and creates a new truncated version with
+    TRUNCATE_LEN frames. It preserves the structure of the original dataset while
+    copying only the first TRUNCATE_LEN frames of each data field.
+
+    Args:
+        input_dataset_path : Path to the input HDF5 dataset file
+        output_dataset_path : Path where the truncated dataset will be saved
+
+    Returns:
+        None
+    """
     # Check if output path exists
     if os.path.exists(output_dataset_path):
         print(f"The file {output_dataset_path} already exists. Exiting...")
@@ -63,6 +77,23 @@ def compress_dataset(input_dataset_path, output_dataset_path):
 
 
 def save_videos(video, dt, video_path=None):
+    """
+    Save multi-camera video data to a single MP4 file.
+
+    This function handles two types of video data structures and combines multiple camera
+    views horizontally into a single video file. It supports both list-based and 
+    dictionary-based video formats.
+
+    Args:
+        video : Video data in one of two formats:
+            - List of dictionaries: Each dict contains camera frames for one timestamp
+            - Dictionary: Contains full video sequence for each camera
+        dt : Time step between frames, used to calculate FPS
+        video_path : Output path for the MP4 file. Defaults to None.
+
+    Returns:
+        None
+    """
     if isinstance(video, list):
         cam_names = list(video[0].keys())
         h, w, _ = video[0][cam_names[0]].shape
@@ -108,6 +139,23 @@ def load_and_save_first_episode_video(dataset_dir, video_path):
 
 
 def load_hdf5(dataset_dir, dataset_name):
+    """
+    Load image data from an HDF5 dataset file.
+
+    This function reads an HDF5 dataset and extracts image data from multiple cameras.
+    It handles both compressed and uncompressed image formats, decompressing images
+    when necessary.
+
+    Args:
+        dataset_dir : Directory containing the HDF5 dataset
+        dataset_name : Name of the dataset file without .hdf5 extension
+
+    Returns:
+        tuple: A tuple containing (None, None, None, None, image_dict), where:
+            image_dict : Dictionary mapping camera names to their image sequences
+                For compressed data: Lists of decoded images
+                For uncompressed data: Raw image arrays
+    """
     dataset_path = os.path.join(dataset_dir, dataset_name + '.hdf5')
     if not os.path.isfile(dataset_path):
         print(f'Dataset does not exist at \n{dataset_path}\n')

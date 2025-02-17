@@ -100,13 +100,16 @@ class ConditionalResidualBlock1D(nn.Module):
             if in_channels != out_channels else nn.Identity()
 
     def forward(self, x, cond):
-        '''
-            x : [ batch_size x in_channels x horizon ]
-            cond : [ batch_size x cond_dim]
+        """
+        Forward pass for the conditional residual block.
 
-            returns:
-            out : [ batch_size x out_channels x horizon ]
-        '''
+        Args:
+            x: Input tensor of shape [batch_size x in_channels x horizon]
+            cond: Conditioning tensor of shape [batch_size x cond_dim]
+
+        Returns:
+            out: Output tensor of shape [batch_size x out_channels x horizon]
+        """
         out = self.blocks[0](x)
         embed = self.cond_encoder(cond)
 
@@ -228,10 +231,17 @@ class ConditionalUnet1D(PreTrainedModel):
     def forward(self, actions, hidden_states, states, is_pad):
         """
         Forward pass for the diffusion head.
-        :param actions: target actions, shape [B, Ta, D] D:10 = 3+6+1
-        :param hidden_states: hidden states from the llava_pythia, as the condition for the diffusion, shape [B,Tokens, D] 8 1200 1024
-        :param states: robot states, shape [B, D]
-        :return: loss
+
+        Args:
+            actions: Target actions with shape [B, Ta, D] where D=10 (3+6+1)
+            hidden_states: Hidden states from llava_pythia as diffusion condition,
+                shape [B, Tokens, D] (8, 1200, 1024)
+            states: Robot states with shape [B, D]
+            is_pad: Padding mask
+
+        Returns:
+            dict: Dictionary containing the loss value during training
+            torch.Tensor: Generated actions during inference
         """
         if actions is not None:  # training time
             B = actions.size(0)
@@ -301,10 +311,16 @@ class ConditionalUnet1D(PreTrainedModel):
                 global_cond=None,
                 states=None):
         """
-        x: (B,T,input_dim)
-        timestep: (B,) or int, diffusion step
-        global_cond: (B,global_cond_dim)
-        output: (B,T,input_dim)
+        Forward pass of the diffusion model.
+
+        Args:
+            sample: Input tensor with shape (B,T,input_dim)
+            timestep: Diffusion timestep, can be a batch (B,) or single int
+            global_cond: Global conditioning with shape (B,global_cond_dim). Defaults to None.
+            states: States tensor. Defaults to None.
+
+        Returns:
+            x: Output tensor with shape (B,T,input_dim)
         """
         # (B,T,C)
         sample = sample.moveaxis(-1, -2)

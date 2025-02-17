@@ -54,6 +54,22 @@ class Attention(nn.Module):
         self.proj_drop = nn.Dropout(proj_drop)
 
     def forward(self, x: torch.Tensor, attn_mask=None) -> torch.Tensor:
+        """
+        Compute self-attention on input tensor with optional attention mask.
+        
+        Args:
+            x (torch.Tensor): Input tensor of shape (B, N, C) where:
+                B is batch size
+                N is sequence length
+                C is channel dimension
+            attn_mask (torch.Tensor, optional): Attention mask tensor. 
+                If provided, will be added to attention scores before softmax.
+                Defaults to None.
+                
+        Returns:
+            torch.Tensor: Output tensor of shape (B, N, C) after self-attention,
+                projection and dropout are applied.
+        """
         B, N, C = x.shape
         qkv = self.qkv(x).reshape(B, N, 3, self.num_heads, self.head_dim).permute(2, 0, 3, 1, 4)
         q, k, v = qkv.unbind(0)
@@ -122,11 +138,16 @@ class TimestepEmbedder(nn.Module):
     def timestep_embedding(t, dim, max_period=10000):
         """
         Create sinusoidal timestep embeddings.
-        :param t: a 1-D Tensor of N indices, one per batch element.
-                          These may be fractional.
-        :param dim: the dimension of the output.
-        :param max_period: controls the minimum frequency of the embeddings.
-        :return: an (N, D) Tensor of positional embeddings.
+
+        Args:
+            t (torch.Tensor): A 1-D Tensor of N indices, one per batch element.
+                These may be fractional.
+            dim (int): The dimension of the output.
+            max_period (int, optional): Controls the minimum frequency of the embeddings.
+                Defaults to 10000.
+
+        Returns:
+            torch.Tensor: An (N, D) Tensor of positional embeddings.
         """
         # https://github.com/openai/glide-text2im/blob/main/glide_text2im/nn.py
         half = dim // 2
@@ -382,10 +403,18 @@ class DiT(PreTrainedModel):
     def forward(self, actions, hidden_states, states, is_pad):
         """
         Forward pass for the diffusion head.
-        :param actions: target actions, shape [B, Ta, D] D:10 = 3+6+1
-        :param hidden_states: hidden states from the llava_pythia, as the condition for the diffusion, shape [B,Tokens, D] 8 1200 1024
-        :param states: robot states, shape [B, D]
-        :return: loss
+        
+        Args:
+            actions: Target actions with shape [B, Ta, D] where D=10 (3+6+1).
+                If None, runs inference mode.
+            hidden_states: Hidden states from llava_pythia as diffusion condition,
+                with shape [B, Tokens, D] (8, 1200, 1024).
+            states: Robot states with shape [B, D].
+            is_pad: Padding mask.
+
+        Returns:
+            Union: During training, returns dict with 'loss' key.
+                   During inference, returns predicted actions tensor.
         """
         if actions is not None:  # training time
             B = actions.size(0)
@@ -452,9 +481,15 @@ class DiT(PreTrainedModel):
     def model_forward(self, x, t, global_cond, states):
         """
         Forward pass of DiT.
-        x: (N, T, input_dim) noisy actions
-        t: (N,) tensor of diffusion timesteps
-        global_cond: (N, n_obs_steps, D) tensor of conditions: image embeddings
+
+        Args:
+            x : Noisy actions tensor of shape (N, T, input_dim).
+            t : Diffusion timesteps tensor of shape (N,).
+            global_cond : Conditions/image embeddings tensor of shape (N, n_obs_steps, D).
+            states : States tensor.
+
+        Returns:
+            torch.Tensor: Output tensor of shape (N, T, output_dim).
         """
         if self.is_tinyvla:
             global_cond = self.global_1d_pool(global_cond.permute(0, 2, 1)).squeeze(-1)

@@ -80,6 +80,21 @@ class DitDiffusionPolicyConfig(PretrainedConfig):
 
     @classmethod
     def from_pretrained(cls, pretrained_model_name_or_path: Union[str, os.PathLike], **kwargs) -> "PretrainedConfig":
+        """
+        Load a DiT diffusion policy configuration from a pretrained model configuration.
+
+        Args:
+            pretrained_model_name_or_path (Union[str, os.PathLike]): 
+                Either:
+                    - A string, the model id of a pretrained model configuration hosted
+                      inside a model repo on huggingface.co.
+                    - A path to a directory containing a configuration file saved
+                      using the save_pretrained() method.
+            **kwargs: Additional keyword arguments passed along to the parent class.
+
+        Returns:
+            PretrainedConfig: The loaded pretrained configuration object.
+        """
         cls._set_token_in_kwargs(kwargs)
 
         config_dict, kwargs = cls.get_config_dict(pretrained_model_name_or_path, **kwargs)

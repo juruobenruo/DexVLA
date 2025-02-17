@@ -57,6 +57,24 @@ class EpisodicDataset(torch.utils.data.Dataset):
         return episode_id, start_ts
 
     def load_from_h5(self, dataset_path, start_ts):
+        """
+        Load data from an HDF5 file at a specific timestep.
+
+        Args:
+            dataset_path : Path to the HDF5 dataset file
+            start_ts : Starting timestep to load data from
+
+        Returns:
+            tuple: Contains the following elements:
+                - original_action_shape : Shape of the original action array
+                - action : Action data starting from start_ts
+                - action_len : Length of the action sequence
+                - image_dict : Dictionary of images from different cameras
+                - qpos : Robot joint positions at start_ts
+                - qvel : Robot joint velocities at start_ts
+                - raw_lang : Natural language instruction
+                - reasoning : Reasoning text if available
+        """
         with h5py.File(dataset_path, 'r') as root:
             try: # some legacy data does not have this attribute
                 is_sim = root.attrs['sim']
@@ -106,6 +124,7 @@ class EpisodicDataset(torch.utils.data.Dataset):
                 action = action[max(0, start_ts - 1):] # hack, to make timesteps more aligned
                 action_len = episode_len - max(0, start_ts - 1) # hack, to make timesteps more aligned
         return original_action_shape, action, action_len, image_dict, qpos, qvel, raw_lang, reasoning
+    
     def __getitem__(self, index):
         episode_id, start_ts = self._locate_transition(index)
         dataset_path = self.dataset_path_list[episode_id]
@@ -192,6 +211,25 @@ class EpisodicDataset(torch.utils.data.Dataset):
 
 
 def get_norm_stats(dataset_path_list, rank0_print=print):
+    """
+    Calculate normalization statistics from a list of HDF5 dataset paths.
+
+    Args:
+        dataset_path_list : List of paths to HDF5 dataset files
+        rank0_print : Print function to use. Defaults to built-in print.
+
+    Returns:
+        tuple: Contains:
+            - stats : Dictionary with the following normalization statistics:
+                - action_mean: Mean values of actions
+                - action_std: Standard deviation of actions
+                - action_min: Minimum values of actions (with small epsilon)
+                - action_max: Maximum values of actions (with small epsilon)
+                - qpos_mean: Mean values of joint positions
+                - qpos_std: Standard deviation of joint positions
+                - example_qpos: Example of joint position data
+            - all_episode_len : List of episode lengths
+    """
     all_qpos_data = []
     all_action_data = []
     all_episode_len = []
@@ -235,7 +273,27 @@ def get_norm_stats(dataset_path_list, rank0_print=print):
 
 # calculating the norm stats corresponding to each kind of task (e.g. folding shirt, clean table....)
 def get_norm_stats_by_tasks(dataset_path_list):
+    """
+    Calculate normalization statistics grouped by different task types.
 
+    Args:
+        dataset_path_list : List of paths to HDF5 dataset files
+
+    Returns:
+        norm_stats_tasks: Dictionary containing normalization statistics for each task type:
+            - fold_shirt: Stats for shirt folding tasks
+            - clean_table: Stats for table cleaning tasks  
+            - others: Stats for all other tasks
+            
+            Each task's stats contains:
+                - action_mean: Mean values of actions
+                - action_std: Standard deviation of actions  
+                - action_min: Minimum values of actions
+                - action_max: Maximum values of actions
+                - qpos_mean: Mean values of joint positions
+                - qpos_std: Standard deviation of joint positions
+                - example_qpos: Example of joint position data
+    """
     data_tasks_dict = dict(
         fold_shirt=[],
         clean_table=[],
@@ -260,6 +318,17 @@ def get_norm_stats_by_tasks(dataset_path_list):
 
 
 def find_all_hdf5(dataset_dir, skip_mirrored_data, rank0_print=print):
+    """
+    Recursively find all HDF5 files in a directory and its subdirectories.
+
+    Args:
+        dataset_dir : Root directory to search for HDF5 files
+        skip_mirrored_data : Whether to skip files containing 'mirror' in filename
+        rank0_print : Print function to use. Defaults to built-in print.
+
+    Returns:
+        hdf5_files: List of paths to HDF5 files found in the directory tree
+    """
     hdf5_files = []
     for root, dirs, files in os.walk(dataset_dir):
         if 'pointcloud' in root: continue
@@ -275,6 +344,15 @@ def find_all_hdf5(dataset_dir, skip_mirrored_data, rank0_print=print):
     return hdf5_files
 
 def BatchSampler(batch_size, episode_len_l, sample_weights):
+    """
+    Creates a generator that yields batches of indices for sampling from episodic data.
+
+    Args:
+        batch_size : Number of samples in each batch
+        episode_len_l : List of lists containing episode lengths for each dataset
+        sample_weights : Weights for sampling from different datasets. 
+            If None, uniform sampling is used.
+    """
     sample_probs = np.array(sample_weights) / np.sum(sample_weights) if sample_weights is not None else None
     sum_dataset_len_l = np.cumsum([0] + [np.sum(episode_len) for episode_len in episode_len_l])
     while True:
@@ -286,6 +364,34 @@ def BatchSampler(batch_size, episode_len_l, sample_weights):
         yield batch
 
 def load_data(dataset_dir_l, name_filter, camera_names, batch_size_train, batch_size_val, chunk_size, config, rank0_print=print, skip_mirrored_data=False, policy_class=None, stats_dir_l=None, sample_weights=None, train_ratio=0.99, llava_pythia_process=None):
+    """
+    Load and prepare training and validation datasets from HDF5 files.
+
+    Args:
+        dataset_dir_l : Directory path(s) containing HDF5 dataset files
+        name_filter : Function to filter dataset filenames
+        camera_names : List of camera names to load images from
+        batch_size_train : Batch size for training data
+        batch_size_val : Batch size for validation data
+        chunk_size : Size of sequence chunks to load
+        config : Configuration dictionary containing model and training settings
+        rank0_print : Print function to use. Defaults to built-in print.
+        skip_mirrored_data : Whether to skip mirrored data files. Defaults to False.
+        policy_class : Name of policy class being used. Defaults to None.
+        stats_dir_l : Directory path(s) for computing normalization statistics. Defaults to None.
+        sample_weights : Weights for sampling from different datasets. Defaults to None.
+        train_ratio : Ratio of data to use for training vs validation. Defaults to 0.99.
+        llava_pythia_process : Processor for language model features. Defaults to None.
+
+    Returns:
+        tuple: Contains:
+            - train_dataset : Dataset for training
+            - val_dataset : Dataset for validation 
+            - norm_stats : Normalization statistics for the data
+            - sampler_params : Parameters for batch sampling:
+                - train: Parameters for training data sampling
+                - eval: Parameters for validation data sampling
+    """
     if type(dataset_dir_l) == str:
         dataset_dir_l = [dataset_dir_l]
     dataset_path_list_list = [find_all_hdf5(dataset_dir, skip_mirrored_data, rank0_print=rank0_print) for dataset_dir in dataset_dir_l]
