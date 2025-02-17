@@ -6,6 +6,25 @@ import h5py
 import numpy as np
 from tqdm import tqdm
 def get_norm_stats(dataset_path_list, rank0_print=print):
+    """
+    Calculate normalization statistics from a list of HDF5 dataset paths.
+
+    Args:
+        dataset_path_list : List of paths to HDF5 dataset files
+        rank0_print : Function for printing messages. Defaults to built-in print.
+
+    Returns:
+        Tuple: A tuple containing:
+            - stats : Dictionary with the following keys:
+                - action_mean : Mean of actions
+                - action_std : Standard deviation of actions
+                - action_min : Minimum values of actions
+                - action_max : Maximum values of actions
+                - qpos_mean : Mean of joint positions
+                - qpos_std : Standard deviation of joint positions
+                - example_qpos : Example of joint positions
+            - all_episode_len : List of episode lengths
+    """
     all_qpos_data = []
     all_action_data = []
     all_episode_len = []

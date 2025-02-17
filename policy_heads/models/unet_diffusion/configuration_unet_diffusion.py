@@ -43,6 +43,22 @@ class UnetDiffusionPolicyConfig(PretrainedConfig):
 
     @classmethod
     def from_pretrained(cls, pretrained_model_name_or_path: Union[str, os.PathLike], **kwargs) -> "PretrainedConfig":
+        """
+        Load a UnetDiffusionPolicy configuration from a pretrained model configuration.
+
+        Args:
+            pretrained_model_name_or_path (Union[str, os.PathLike]): 
+                Either:
+                    - A string, the model id of a pretrained model configuration hosted inside a model repo on 
+                      huggingface.co. Valid model ids can be located at the root-level, like "bert-base-uncased",
+                      or namespaced under a user or organization name.
+                    - A path to a directory containing a configuration file saved using the 
+                      :func:`~transformers.PreTrainedConfig.save_pretrained` method.
+            **kwargs: Additional keyword arguments passed along to the configuration class.
+
+        Returns:
+            class:`~transformers.PretrainedConfig`: The configuration object instantiated from the pretrained model configuration.
+        """
         cls._set_token_in_kwargs(kwargs)
 
         config_dict, kwargs = cls.get_config_dict(pretrained_model_name_or_path, **kwargs)

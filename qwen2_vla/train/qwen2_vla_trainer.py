@@ -21,6 +21,20 @@ from transformers.utils import is_torch_tpu_available
 from transformers.trainer_pt_utils import get_dataloader_sampler
 
 def maybe_zero_3(param, ignore_status=False, name=None):
+    """
+    Handles parameter gathering for DeepSpeed ZeRO Stage 3.
+    
+    This function manages the gathering of distributed parameters when using DeepSpeed ZeRO Stage 3.
+    It handles both ZeRO-partitioned parameters and regular parameters.
+    
+    Args:
+        param (torch.Tensor): The parameter tensor to be gathered
+        ignore_status (bool, optional): Whether to ignore the ZeRO parameter status. Defaults to False.
+        name (str, optional): Name of the parameter for logging purposes. Defaults to None.
+        
+    Returns:
+        torch.Tensor: The gathered parameter tensor on CPU
+    """
     from deepspeed import zero
     from deepspeed.runtime.zero.partition_parameters import ZeroParamStatus
     if hasattr(param, "ds_id"):
@@ -63,6 +77,25 @@ def split_to_even_chunks(indices, lengths, num_chunks):
 
 
 def get_modality_length_grouped_indices(lengths, batch_size, world_size, generator=None):
+    """
+    Groups and shuffles indices based on modality (multimodal vs language-only) and sequence lengths.
+    
+    This function separates samples into multimodal and language-only groups, sorts them by length,
+    and creates balanced batches while maintaining a good mix of both modalities.
+    
+    Args:
+        lengths (List[int]): List of sequence lengths. Positive values indicate multimodal samples,
+                            negative values indicate language-only samples.
+        batch_size (int): The number of samples in each batch per GPU/process.
+        world_size (int): The number of processes/GPUs being used for distributed training.
+        generator (torch.Generator, optional): Random number generator for reproducibility. Defaults to None.
+    
+    Returns:
+        List[int]: A list of shuffled indices grouped by modality and length.
+    
+    Raises:
+        AssertionError: If there are zero-length sequences or if either modality is missing.
+    """
     # We need to use torch for the random part as a distributed sampler will set the random seed for torch.
     assert all(l != 0 for l in lengths), "Should not have zero length."
     # assert all(l > 0 for l in lengths) or all(l < 0 for l in lengths), "Should have only positive or negative lengths."
