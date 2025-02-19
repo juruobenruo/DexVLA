@@ -140,7 +140,7 @@ Traceback (most recent call last):
 TypeError: _batch_encode_plus() got an unexpected keyword argument 'images'
 ~~~
 ### 2. <font color=red>CUDA OOM</font>. 
-Deepspeed allows to offload optimizer part to cpu which saves a lots of cuda memory. You can enbale the offload by adding following part in scripts/zero2.json.
+Deepspeed allows to offload optimizer part to cpu which saves a lot of cuda memory. You can enbale the offload by adding following part in scripts/zero2.json.
 Please make sure your GCC version > 9.
 ~~~json
     "zero_optimization": {

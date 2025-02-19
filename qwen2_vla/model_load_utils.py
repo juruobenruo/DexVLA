@@ -149,14 +149,6 @@ def load_model(config=None, qwen2_vla_config=None, rank0_print=print, tokenizer=
                 keys_to_del_dit.append(k)
             if 'cond_obs_emb' in k:
                 keys_to_del_dit.append(k)
-        pretrained_action_dim = pretrain_dit_weights['noise_pred_net.x_embedder.weight'].shape[-1]
-        if config['action_head_args'].action_dim != pretrained_action_dim:
-            rank0_print(
-                f"{RED}Current Action Dim is {config['action_head_args'].action_dim} != Pretrained Action Dim {pretrained_action_dim}. Initializing a new head and state encoder.... {RESET}")
-            # del pretrained weights of action head
-            for each in ["noise_pred_net.x_embedder.weight", "noise_pred_net.final_layer.linear.weight", "noise_pred_net.final_layer.linear.bias", 'combine.0.weight', "combine.0.bias"]:
-                if each not in keys_to_del_dit:
-                    keys_to_del_dit.append(each)
         for k in keys_to_del_dit:
             del pretrain_dit_weights[k]
         pretrain_dit_weights = {k[15:] if k.startswith('noise_pred_net.') else k: v for k, v in pretrain_dit_weights.items()}
