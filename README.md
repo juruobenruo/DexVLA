@@ -66,7 +66,7 @@ root
     }
 ```
 
-## Download Pretrained VLM
+## 🤗Download Pretrained VLM
 We construct the VLM backbone by integrating Qwen2-VL-2B, a powerful and efficient model, into our framework. 
 The Qwen2-VL 2B serves as the core of our architecture, providing robust capabilities 
 for vision-language tasks. We use off-the-shelf Qwen2-VL model proposed 
@@ -76,10 +76,10 @@ in [Qwen2-VL](https://arxiv.org/pdf/2409.12191) without any post training on VLM
 |---------------------|----------------------------------------------------------------|
 | Qwen2-VL (~2B)      | [huggingface](https://huggingface.co/Qwen/Qwen2-VL-2B-Instruct) |
 
-!!! After downloading the standard weights, you have to replace the official "config.json"
+**❗❗** After downloading the standard weights, you have to replace the official "config.json"
 with our "docs/config.json" designed for VLA.
 
-## Train
+## 🦾Train
 The training script are "scripts/stage2_train.sh" and "scripts/stage3_train.sh". And you need to change following parameters:
 1. **OUTPUT** :refers to the save directory for training, which must include the keyword "qwen2"(and optionally "lora"). If LoRA training is used, the name must include "lora" (e.g., "qwen2_lora").
 2. **task_name** :refers to the tasks used for training, which should be corresponded to "your_task_name" in aloha_scripts/constant.py
@@ -106,12 +106,12 @@ And following hyper-parameters must be set as:
 ```
 
 ## Evaluation
-!!! Make sure your trained checkpoint dir has two files: "preprocessor_config.json" and "chat_template.json".
+**❗❗** Make sure your trained checkpoint dir has two files: "preprocessor_config.json" and "chat_template.json".
 If not, please copy them from downloaded Qwen2_vl weights or this [link](https://huggingface.co/Qwen/Qwen2-VL-2B-Instruct/tree/main).
 
 You can refer to our evaluation script [smart_eval_agilex.py](https://github.com/lesjie-wen/dexvla/blob/main/evaluate/smart_eval_agilex.py) to evaluate your DexVLA.
 
-## Trouble Shooting
+## ☢️Trouble Shooting
 ### 1."TypeError: _batch_encode_plus() got an unexpected keyword argument 'images'". 
 Copy "preprocessor_config.json" and "chat_template.json" into your own trained 
 DexVLA dir. And must be put in target "checkpoint-XXXX" dir.
@@ -140,7 +140,19 @@ Traceback (most recent call last):
 TypeError: _batch_encode_plus() got an unexpected keyword argument 'images'
 ~~~
 ### 2. <font color=red>CUDA OOM</font>. 
-Deepspeed allows to offload optimizer part to cpu which saves a lot of cuda memory. You can enbale the offload by adding following part in scripts/zero2.json.
+For OOM problem, we provide three ways to save CUDA memory. You can use only one solution or all of them. And here we listed the training speed, GPU memory for all three solutions.
+Notably, all results are evaluated on **single** A6000(46G) with batch_size 2. 
+
+❗Notably, deepspeed may takes more GPU memory on single gpu with zero2 optimization.
+
+| Script                   | DeepSpeed offload | LoRA VLM | Smaller ScaleDP | training speed | CUDA memory |
+|--------------------------|-------------------|----------|-----------------|----------------|-------------|
+| local_debug_deepspeed.sh | 🗸                | -        | -               | 6.56s/iter     | 20-29G      |
+| local_debug_python.sh    | -                 | 🗸       | -               | 1.09s/iter     | 24G         |
+| local_debug_python.sh    | -                 | -        | 🗸              | 1.01s/iter     | 33G         |
+| local_debug_python.sh    | -                 | -        | -               | 1.1s/iter      | 38G         |
+#### Deepspeed offload
+Deepspeed allows to offload optimizer part to cpu which saves a lot of cuda memory. You can enbale the offload by adding following part in scripts/zero2.json. 
 Please make sure your GCC version > 9.
 ~~~json
     "zero_optimization": {
@@ -156,6 +168,27 @@ Please make sure your GCC version > 9.
         }
         //###################################
     },
+~~~
+#### LoRA Finetune
+Our scripts facilitate LoRA (Low-Rank Adaptation) fine-tuning of the Vision-Language Model (VLM) backbone. This approach is effective in reducing GPU memory usage. Meanwhile, the policy head continues to undergo full parameter training.
+
+To enable LoRA, you can set the following hyperparameters within the training scripts:
+~~~ shell
+  ...
+  --lora_enable True \
+  ...
+  --freeze_vision_tower True \
+  --freeze_backbone True \
+  ...
+~~~
+#### Smaller ScaleDP
+Our DexVLA consists of two parts: the VLM backbone and the ScaleDP policy head. In our paper, we utilize a 1B - sized ScaleDP. Additionally, we recommend that users employ a smaller one, such as a 410M - sized ScaleDP, to save memory.
+
+By setting the following hyperparameters:
+~~~ shell
+  ...
+  --policy_head_size "ScaleDP_L" \
+  ...
 ~~~
 ### 3. Action value is <font color=red>Nan</font> during inference which happens at the last denoising in "policy_heads/models/transformer_diffusion/modeling_dit_diffusion.py". 
 This is a precision overflow problem in "[DDIMScheduler](https://github.com/huggingface/diffusers/blob/v0.11.1/src/diffusers/schedulers/scheduling_ddim.py)" from diffusers.schedulers.scheduling_ddim. The easiest way is adding a line in "scheduling_ddim.py"
