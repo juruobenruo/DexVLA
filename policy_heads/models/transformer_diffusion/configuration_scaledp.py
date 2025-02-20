@@ -7,19 +7,19 @@ from transformers import AutoConfig, AutoModelForCausalLM
 logger = logging.get_logger(__name__)
 
 MODEL_STRUCTURE = {
-    'DiT_XH': {'depth': 36, 'n_emb': 1760, 'num_heads': 32, },
-    'DiT_H': {'depth': 32, 'n_emb': 1280, 'num_heads': 16, },
-    'DiT_XL': {'depth':32, 'n_emb':1152, 'num_heads':16,},
-    'DiT_L': {'depth': 24, 'n_emb': 1024, 'num_heads': 16, }, # 400M
-    'DiT_B': {'depth': 12, 'n_emb': 768, 'num_heads': 12, }, # 100M
-    'DiT_S': {'depth': 12, 'n_emb': 384, 'num_heads': 6, },
+    'ScaleDP_XH': {'depth': 36, 'n_emb': 1760, 'num_heads': 32, },
+    'ScaleDP_H': {'depth': 32, 'n_emb': 1280, 'num_heads': 16, },
+    'ScaleDP_XL': {'depth':32, 'n_emb':1152, 'num_heads':16,},
+    'ScaleDP_L': {'depth': 24, 'n_emb': 1024, 'num_heads': 16, }, # 400M
+    'ScaleDP_B': {'depth': 12, 'n_emb': 768, 'num_heads': 12, }, # 100M
+    'ScaleDP_S': {'depth': 12, 'n_emb': 384, 'num_heads': 6, },
 }
 
-class DitDiffusionPolicyConfig(PretrainedConfig):
+class ScaleDPPolicyConfig(PretrainedConfig):
     '''
-    Configuration for dit diffusion policy head
+    Configuration for ScaleDP policy head
     '''
-    model_type = "dit_diffusion_policy"
+    model_type = "scale_dp_policy"
     def __init__(
             self,
             eval: bool = False,
@@ -96,4 +96,4 @@ class DitDiffusionPolicyConfig(PretrainedConfig):
 
         return cls.from_dict(config_dict, **kwargs)
 
-AutoConfig.register("dit_diffusion_policy", DitDiffusionPolicyConfig)
+AutoConfig.register("scale_dp_policy", ScaleDPPolicyConfig)

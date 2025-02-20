@@ -1460,7 +1460,7 @@ class Qwen2VLForConditionalGenerationForVLA(Qwen2VLPreTrainedModel, GenerationMi
 
         # Initialize weights and apply final processing
         self.post_init()
-        if config.policy_head_config.model_type == "dit_diffusion_policy":
+        if config.policy_head_config.model_type == "scale_dp_policy":
             self.policy_head.init_weights()
         self.input_action_proj = ActionProjector(config.hidden_size, config.hidden_size)
 

@@ -134,7 +134,7 @@ def load_model(config=None, qwen2_vla_config=None, rank0_print=print, tokenizer=
                 # **kwargs, # specified device map and dtype may cause nan initialize
             )
 
-    if model_args.load_pretrain_dit and action_args.policy_head_type == 'dit_diffusion_policy' and not config['training_args'].resume_from_checkpoint:
+    if model_args.load_pretrain_dit and action_args.policy_head_type == 'scale_dp_policy' and not config['training_args'].resume_from_checkpoint:
         assert model_args.pretrain_dit_path is not None, "please specify a pretrained dit path when setting load_pretrain_dit==True"
         rank0_print(f'{RED}>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>Loading pretrained dit weights...<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<{RESET}')
         pretrain_dit_weights = torch.load(model_args.pretrain_dit_path, map_location='cpu')

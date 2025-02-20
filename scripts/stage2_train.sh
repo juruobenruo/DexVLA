@@ -2,7 +2,7 @@
 LLM=qwen2_vl
 LLM_MODEL_SIZE=2B
 
-ACTION_HEAD=dit_diffusion_policy  #act #unet_diffusion_policy dit_diffusion_policy
+ACTION_HEAD=scale_dp_policy  #act #unet_diffusion_policy scale_dp_policy
 
 DIT_PRETRAIN=/path/to/pretrained/ScaleDP
 MNOP=/path/to/pretrained/qwen2_vl # official qwen2_vl weights
@@ -21,7 +21,7 @@ deepspeed --master_port 29604 --num_gpus=8 --num_nodes=1 ./train_vla.py \
   --load_pretrain_dit True \
   --pretrain_dit_path $DIT_PRETRAIN \
   --policy_head_type $ACTION_HEAD \
-  --policy_head_size "DiT_H" \
+  --policy_head_size "ScaleDP_H" \
   --image_size_stable "(320,240)" \
   --image_size_wrist "(320,240)" \
   --task_name ${TASKNAME} \

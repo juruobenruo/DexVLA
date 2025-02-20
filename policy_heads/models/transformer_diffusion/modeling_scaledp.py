@@ -147,12 +147,12 @@ class TimestepEmbedder(nn.Module):
 
 
 #################################################################################
-#                                 Core DiT Model                                #
+#                                 Core ScaleDP Model                                #
 #################################################################################
 
-class DiTBlock(nn.Module):
+class ScaleDPBlock(nn.Module):
     """
-    A DiT block with adaptive layer norm zero (adaLN-Zero) conditioning.
+    A ScaleDP block with adaptive layer norm zero (adaLN-Zero) conScaleDPioning.
     """
 
     def __init__(self, hidden_size, num_heads, mlp_ratio=4.0, **block_kwargs):
@@ -177,7 +177,7 @@ class DiTBlock(nn.Module):
 
 class FinalLayer(nn.Module):
     """
-    The final layer of DiT.
+    The final layer of ScaleDP.
     """
 
     def __init__(self, hidden_size, output_dim):
@@ -195,18 +195,18 @@ class FinalLayer(nn.Module):
         x = self.linear(x)
         return x
 
-from .configuration_dit_diffusion import DitDiffusionPolicyConfig
-class DiT(PreTrainedModel):
+from .configuration_scaledp import ScaleDPPolicyConfig
+class ScaleDP(PreTrainedModel):
     """
     Diffusion models with a Transformer backbone.
     """
-    config_class = DitDiffusionPolicyConfig
+    config_class = ScaleDPPolicyConfig
     def __init__(
             self,
-            config: DitDiffusionPolicyConfig,
+            config: ScaleDPPolicyConfig,
     ):
         super().__init__(config)
-        # compute number of tokens for main trunk and condition encoder
+        # compute number of tokens for main trunk and conScaleDPion encoder
         if config.n_obs_steps is None:
             config.n_obs_steps = config.prediction_horizon
         T = config.prediction_horizon
@@ -246,7 +246,7 @@ class DiT(PreTrainedModel):
         self.pos_embed = nn.Parameter(torch.zeros(1, config.prediction_horizon, config.n_emb))
 
         self.blocks = nn.ModuleList([
-            DiTBlock(config.n_emb, config.num_heads, mlp_ratio=config.mlp_ratio) for _ in range(config.depth)
+            ScaleDPBlock(config.n_emb, config.num_heads, mlp_ratio=config.mlp_ratio) for _ in range(config.depth)
         ])
         self.final_layer = FinalLayer(config.n_emb, output_dim=config.output_dim)
         # self.initialize_weights()
@@ -258,7 +258,7 @@ class DiT(PreTrainedModel):
         self.action_dim = config.output_dim
         self.obs_as_cond = obs_as_cond
         logger.info(
-            "number of parameters in dit: %e", sum(p.numel() for p in self.parameters())
+            "number of parameters in ScaleDP: %e", sum(p.numel() for p in self.parameters())
         )
 
         from diffusers.schedulers.scheduling_ddim import DDIMScheduler
@@ -301,7 +301,7 @@ class DiT(PreTrainedModel):
         nn.init.normal_(self.t_embedder.mlp[0].weight, std=0.02)
         nn.init.normal_(self.t_embedder.mlp[2].weight, std=0.02)
 
-        # Zero-out adaLN modulation layers in DiT blocks:
+        # Zero-out adaLN modulation layers in ScaleDP blocks:
         for block in self.blocks:
             nn.init.constant_(block.adaLN_modulation[-1].weight, 0)
             nn.init.constant_(block.adaLN_modulation[-1].bias, 0)
@@ -383,7 +383,7 @@ class DiT(PreTrainedModel):
         """
         Forward pass for the diffusion head.
         :param actions: target actions, shape [B, Ta, D] D:10 = 3+6+1
-        :param hidden_states: hidden states from the llava_pythia, as the condition for the diffusion, shape [B,Tokens, D] 8 1200 1024
+        :param hidden_states: hidden states from the llava_pythia, as the conScaleDPion for the diffusion, shape [B,Tokens, D] 8 1200 1024
         :param states: robot states, shape [B, D]
         :return: loss
         """
@@ -451,10 +451,10 @@ class DiT(PreTrainedModel):
 
     def model_forward(self, x, t, global_cond, states):
         """
-        Forward pass of DiT.
+        Forward pass of ScaleDP.
         x: (N, T, input_dim) noisy actions
         t: (N,) tensor of diffusion timesteps
-        global_cond: (N, n_obs_steps, D) tensor of conditions: image embeddings
+        global_cond: (N, n_obs_steps, D) tensor of conScaleDPions: image embeddings
         """
         if self.is_tinyvla:
             global_cond = self.global_1d_pool(global_cond.permute(0, 2, 1)).squeeze(-1)
@@ -481,8 +481,6 @@ class DiT(PreTrainedModel):
             x = block(x, c, attn_mask=None)  # (N, T, D)
         x = self.final_layer(x, c)  # (N, T, output_dim)
         return x
-
-
 
 #################################################################################
 #                   Sine/Cosine Positional Embedding Functions                  #
@@ -540,31 +538,30 @@ def get_1d_sincos_pos_embed_from_grid(embed_dim, pos):
 
 
 #################################################################################
-#                                   DiT Configs                                  #
+#                                   ScaleDP Configs                                  #
 #################################################################################
-def DiT_XH(**kwargs):
-    return DiT(depth=36, n_emb=1760, num_heads=32, **kwargs)
-def DiT_H(**kwargs):
-    return DiT(depth=32, n_emb=1280, num_heads=16, **kwargs)
+def ScaleDP_XH(**kwargs):
+    return ScaleDP(depth=36, n_emb=1760, num_heads=32, **kwargs)
+def ScaleDP_H(**kwargs):
+    return ScaleDP(depth=32, n_emb=1280, num_heads=16, **kwargs)
 
-def DiT_XL(**kwargs):
-    return DiT(depth=28, n_emb=1152, num_heads=16, **kwargs)
+def ScaleDP_XL(**kwargs):
+    return ScaleDP(depth=28, n_emb=1152, num_heads=16, **kwargs)
 
-
-def DiT_L(**kwargs):
-    return DiT(depth=24, n_emb=1024, num_heads=16, **kwargs)
-
-
-def DiT_B(**kwargs):
-    return DiT(depth=12, n_emb=768, num_heads=12, **kwargs)
+def ScaleDP_L(**kwargs):
+    return ScaleDP(depth=24, n_emb=1024, num_heads=16, **kwargs)
 
 
-def DiT_S(**kwargs):
-    return DiT(depth=12, n_emb=512, num_heads=6, **kwargs)
+def ScaleDP_B(**kwargs):
+    return ScaleDP(depth=12, n_emb=768, num_heads=12, **kwargs)
 
 
-DiT_models = {
-    'DiT-XL': DiT_XL, 'DiT-L': DiT_L, 'DiT-B': DiT_B, 'DiT-S': DiT_S,
+def ScaleDP_S(**kwargs):
+    return ScaleDP(depth=12, n_emb=512, num_heads=6, **kwargs)
+
+
+ScaleDP_models = {
+    'ScaleDP-XL': ScaleDP_XL, 'ScaleDP-L': ScaleDP_L, 'ScaleDP-B': ScaleDP_B, 'ScaleDP-S': ScaleDP_S,
 }
 
-AutoModel.register(DitDiffusionPolicyConfig, DiT)
+AutoModel.register(ScaleDPPolicyConfig, ScaleDP)

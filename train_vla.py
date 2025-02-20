@@ -30,8 +30,8 @@ from aloha_scripts.utils import *
 #  >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>parameters<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 @dataclass
 class ActionHeadArguments:
-    policy_head_type: str = field(default="dit_diffusion_policy") # unet_diffusion_policy
-    policy_head_size: str = field(default="DiT_B") # DiT_XL, DiT_L, DiT_B, DiT_S
+    policy_head_type: str = field(default="scale_dp_policy") # or unet_diffusion_policy
+    policy_head_size: str = field(default="ScaleDP_H") # ScaleDP_XL, ScaleDP_L, ScaleDP_B, ScaleDP_S
     state_dim: int = 7 # state dimension
     action_dim: int = 10 # action dimension
 
@@ -197,7 +197,7 @@ def parse_param():
 
     config = AutoConfig.from_pretrained(model_args.model_name_or_path, **asdict(action_head_args))
     # initialize diffusion action head
-    if action_head_args.policy_head_type == 'dit_diffusion_policy': # scaledp, using dit block
+    if action_head_args.policy_head_type == 'scale_dp_policy': # scaledp, using dit block
         config.policy_head_size = action_head_args.policy_head_size
         config.policy_head_config = AutoConfig.for_model(model_type=config.policy_head_type,
                                                        model_size=action_head_args.policy_head_size,

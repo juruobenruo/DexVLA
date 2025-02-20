@@ -33,7 +33,7 @@ class EpisodicDataset(torch.utils.data.Dataset):
         self.data_args = data_args
         self.robot = robot
         self.rank0_print = rank0_print
-        if 'diffusion' in self.policy_class:
+        if 'diffusion' in self.policy_class.lower() or 'scale_dp' in self.policy_class.lower():
             self.augment_images = True
         else:
             self.augment_images = False

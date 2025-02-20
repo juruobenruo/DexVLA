@@ -244,7 +244,7 @@ class FakeRobotEnv():
 
 if __name__ == '__main__':
     # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>hyper parameters<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-    action_head = 'dit_diffusion_policy'  # 'unet_diffusion_policy'
+    action_head = 'scale_dp_policy'  # or 'unet_diffusion_policy'
     policy_config = {
         #### 1. Specify path to trained DexVLA(Required)#############################
         "model_path": "root/path/to/DexVLA_qwen2_vl_stage2_folding/checkpoint-60000",

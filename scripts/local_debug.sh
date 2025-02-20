@@ -2,15 +2,16 @@
 LLM=qwen2_vl
 LLM_MODEL_SIZE=2B
 
-ACTION_HEAD=dit_diffusion_policy  #act #unet_diffusion_policy dit_diffusion_policy
+ACTION_HEAD=scale_dp_policy  # or unet_diffusion_policy \ scale_dp_policy
 
-DIT_PRETRAIN=/path/to/pretrained/ScaleDP
 MNOP=/media/rl/HDD/data/multi_head_train_results/aloha_qwen2_vla/qwen2_vl_2B/qwen2_vl_4_cameras_1_17_all_data_pretrain_4w_DiT_H_1_17_full_param_stage_1_50_raw_lang/checkpoint-60000
+MNOP=/media/rl/HDD/data/weights/Qwen2-VL-2B-Instruct
 TASKNAME=example_tasks
 
 OUTPUT=/home/rl/Downloads/output/test
 
-python ./train_vla.py \
+deepspeed --master_port 29604 --num_gpus=1 --num_nodes=1 ./train_vla.py \
+  --deepspeed scripts/zero2.json \
   --use_reasoning False \
   --lora_enable False \
   --action_dim 14 \
@@ -21,7 +22,7 @@ python ./train_vla.py \
   --using_film True \
   --using_ema False \
   --policy_head_type $ACTION_HEAD \
-  --policy_head_size "DiT_H" \
+  --policy_head_size "ScaleDP_H" \
   --image_size_stable "(320,240)" \
   --image_size_wrist "(320,240)" \
   --episode_first False \

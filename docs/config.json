@@ -2,7 +2,7 @@
   "architectures": [
     "Qwen2VLForConditionalGenerationForVLA"
   ],
-  "policy_head_type": "unet_diffusion_policy",
+  "policy_head_type": "scale_dp_policy",
   "attention_dropout": 0.0,
   "bos_token_id": 151643,
   "eos_token_id": 151645,
