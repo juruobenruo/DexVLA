@@ -111,7 +111,7 @@ If not, please copy them from downloaded Qwen2_vl weights or this [link](https:/
 
 You can refer to our evaluation script [smart_eval_agilex.py](https://github.com/lesjie-wen/dexvla/blob/main/evaluate/smart_eval_agilex.py) to evaluate your DexVLA.
 
-## ☢️Trouble Shooting
+## ⚠️ Trouble Shooting
 ### 1."TypeError: _batch_encode_plus() got an unexpected keyword argument 'images'". 
 Copy "preprocessor_config.json" and "chat_template.json" into your own trained 
 DexVLA dir. And must be put in target "checkpoint-XXXX" dir.
@@ -147,9 +147,9 @@ Notably, all results are evaluated on **single** A6000(46G) with batch_size 2.
 
 | Script                   | DeepSpeed offload | LoRA VLM | Smaller ScaleDP | training speed | CUDA memory |
 |--------------------------|-------------------|----------|-----------------|----------------|-------------|
-| local_debug_deepspeed.sh | 🗸                | -        | -               | 6.56s/iter     | 20-29G      |
-| local_debug_python.sh    | -                 | 🗸       | -               | 1.09s/iter     | 24G         |
-| local_debug_python.sh    | -                 | -        | 🗸              | 1.01s/iter     | 33G         |
+| local_debug_deepspeed.sh | ✔️                | -        | -               | 6.56s/iter     | 20-29G      |
+| local_debug_python.sh    | -                 | ✔️       | -               | 1.09s/iter     | 24G         |
+| local_debug_python.sh    | -                 | -        | ✔️              | 1.01s/iter     | 33G         |
 | local_debug_python.sh    | -                 | -        | -               | 1.1s/iter      | 38G         |
 #### Deepspeed offload
 Deepspeed allows to offload optimizer part to cpu which saves a lot of cuda memory. You can enbale the offload by adding following part in scripts/zero2.json. 
