@@ -288,6 +288,7 @@ def BatchSampler(batch_size, episode_len_l, sample_weights):
 def load_data(dataset_dir_l, name_filter, camera_names, batch_size_train, batch_size_val, chunk_size, config, rank0_print=print, skip_mirrored_data=False, policy_class=None, stats_dir_l=None, sample_weights=None, train_ratio=0.99, llava_pythia_process=None):
     if type(dataset_dir_l) == str:
         dataset_dir_l = [dataset_dir_l]
+    # find all data
     dataset_path_list_list = [find_all_hdf5(dataset_dir, skip_mirrored_data, rank0_print=rank0_print) for dataset_dir in dataset_dir_l]
     for d,dpl in zip(dataset_dir_l, dataset_path_list_list):
         if len(dpl) == 0:
@@ -363,9 +364,7 @@ def postprocess_base_action(base_action):
     linear_vel, angular_vel = base_action
     linear_vel *= 1.0
     angular_vel *= 1.0
-    # angular_vel = 0
-    # if np.abs(linear_vel) < 0.05:
-    #     linear_vel = 0
+
     return np.array([linear_vel, angular_vel])
 
 ### env utils
