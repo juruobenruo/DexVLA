@@ -17,18 +17,13 @@ def find_all_linear_names(model, rank0_print, lora_module=None):
     cls = torch.nn.Linear
     lora_module_names = set()
 
-    multimodal_keywords = ['multi_modal_projector', 'lm_head', 'xattn', 'input_action_proj', 'gt_film', 'gt_action_proj', 'reasoning_action_proj', 'reasoning_film', 'merger']
+    multimodal_keywords = ['multi_modal_projector', 'lm_head', 'input_action_proj', 'reasoning_action_proj', 'reasoning_film', 'merger']
     if 'vit' not in lora_module:
         multimodal_keywords.append("vision_tower")
     if 'llm' not in lora_module:
         multimodal_keywords.append("language_model")
     if 'di_head' not in lora_module: # not lora finetune policy_head
         multimodal_keywords.append("policy_head")
-    else: # lora policy_head
-        multimodal_keywords.append("x_embedder")
-        multimodal_keywords.append("cond_obs_emb")
-        multimodal_keywords.append("norm_after_pool")
-
 
     rank0_print("##" * 20)
 

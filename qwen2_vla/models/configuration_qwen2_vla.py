@@ -25,6 +25,7 @@ from transformers import AutoModel, AutoConfig
 logger = logging.get_logger(__name__)
 
 
+# config for VLA vision part
 class Qwen2VLAVisionConfig(PretrainedConfig):
     model_type = "qwen2_vla"
 
@@ -72,7 +73,7 @@ class Qwen2VLAVisionConfig(PretrainedConfig):
 
         return cls.from_dict(config_dict, **kwargs)
 
-
+# DexVLA config which is modified from Qwen2_VL
 class Qwen2VLAConfig(PretrainedConfig):
     r"""
     This is the configuration class to store the configuration of a [`Qwen2VLModel`]. It is used to instantiate a
@@ -204,7 +205,7 @@ class Qwen2VLAConfig(PretrainedConfig):
         vision_config=None,
         rope_scaling=None,
         # For loading policy head
-        policy_head_type='scale_dp_policy',  # unet_diffusion_policy
+        policy_head_type='scale_dp_policy',  # or unet_diffusion_policy
         **kwargs,
     ):
         if isinstance(vision_config, dict):

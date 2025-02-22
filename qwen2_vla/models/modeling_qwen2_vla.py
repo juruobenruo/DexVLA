@@ -1831,7 +1831,7 @@ class Qwen2VLForConditionalGenerationForVLA(Qwen2VLPreTrainedModel, GenerationMi
         if self.using_film:
             action_hidden_states = self.film_forward(labels=labels, input_ids=input_ids,
                                                      hidden_states=hidden_states)
-        else: # tinyvla
+        else: 
             action_hidden_states = hidden_states
 
         ret = self.policy_head(actions=actions, hidden_states=action_hidden_states, states=states, is_pad=is_pad)
