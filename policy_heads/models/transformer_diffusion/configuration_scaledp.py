@@ -7,12 +7,8 @@ from transformers import AutoConfig, AutoModelForCausalLM
 logger = logging.get_logger(__name__)
 
 MODEL_STRUCTURE = {
-    'ScaleDP_XH': {'depth': 36, 'n_emb': 1760, 'num_heads': 32, },
     'ScaleDP_H': {'depth': 32, 'n_emb': 1280, 'num_heads': 16, },
-    'ScaleDP_XL': {'depth':32, 'n_emb':1152, 'num_heads':16,},
     'ScaleDP_L': {'depth': 24, 'n_emb': 1024, 'num_heads': 16, }, # 400M
-    'ScaleDP_B': {'depth': 12, 'n_emb': 768, 'num_heads': 12, }, # 100M
-    'ScaleDP_S': {'depth': 12, 'n_emb': 384, 'num_heads': 6, },
 }
 
 class ScaleDPPolicyConfig(PretrainedConfig):
@@ -31,14 +27,13 @@ class ScaleDPPolicyConfig(PretrainedConfig):
             n_obs_steps: int = 2,  # number of observation steps
             depth: int = 28,  # number of DiT blocks
             n_emb: int = 256,  # embedding size
-            num_heads: int = 16,
+            num_heads: int = 16, 
             mlp_ratio: int = 4.0,
             time_as_cond: bool = True,
             obs_as_cond: bool = True,
             learn_sigma: bool = False,
             model_size: str = "none",
             num_inference_timesteps: int = 10,
-            num_queries: int = 16,
             noise_samples: int = 1,
             num_train_timesteps: int = 100,
             is_tinyvla: bool = False,
@@ -49,9 +44,7 @@ class ScaleDPPolicyConfig(PretrainedConfig):
             n_emb = MODEL_STRUCTURE[model_size]['n_emb']
             num_heads = MODEL_STRUCTURE[model_size]['num_heads']
         else:
-            # raise ValueError("model_size show not be 'none'")
-            pass
-            # print("model_size should not be 'none'")
+            raise ValueError("model_size show not be 'none'")
         self.eval = eval
 
         self.input_dim = action_dim
