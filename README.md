@@ -8,6 +8,7 @@ DexVLA: Vision-Language Model with Plug-In Diffusion Expert for Visuomotor Polic
 
 
 ## 📰 News
+* **`Feb. 24th, 2025`**: We released our Stage 1 trained ScaleDP-H !!!
 * **`Feb. 17th, 2025`**: **DexVLA** is out! **Paper** can be found [here](https://arxiv.org/abs/2502.05855). The **project web** can be found [here](https://dex-vla.github.io/).
 
 ## Contents
@@ -66,7 +67,8 @@ root
     }
 ```
 
-## 🤗Download Pretrained VLM
+## 🤗Download Pretrained Weights
+### Download official Qwen2_VL weights
 We construct the VLM backbone by integrating Qwen2-VL-2B, a powerful and efficient model, into our framework. 
 The Qwen2-VL 2B serves as the core of our architecture, providing robust capabilities 
 for vision-language tasks. We use off-the-shelf Qwen2-VL model proposed 
@@ -78,6 +80,12 @@ in [Qwen2-VL](https://arxiv.org/pdf/2409.12191) without any post training on VLM
 
 **❗❗** After downloading the standard weights, you have to replace the official "config.json"
 with our "docs/config.json" designed for VLA.
+### Download our pretrained ScaleDP-H weights(Stage 1)
+We released our pretrained weights of ScaleDP-H which is trained after Stage1. Now you can download the weights and directly finetuning your data on Stage 2.
+
+| Model               | Link                                                           |
+|---------------------|----------------------------------------------------------------|
+| ScaleDP-H (~1B)     | [huggingface](https://huggingface.co/lesjie/scale_dp_h)  |
 
 ## 🦾Train
 The training script are "scripts/stage2_train.sh" and "scripts/stage3_train.sh". And you need to change following parameters:
