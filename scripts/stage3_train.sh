@@ -2,7 +2,7 @@
 LLM=qwen2_vl
 LLM_MODEL_SIZE=2B
 
-ACTION_HEAD=scale_dp_policy  #act #unet_diffusion_policy scale_dp_policy
+ACTION_HEAD=scale_dp_policy  #unet_diffusion_policy or scale_dp_policy
 
 DIT_PRETRAIN=/path/to/pretrained/ScaleDP
 MNOP=/path/to/trained/DexVLA # DexVLA weights after stage 2

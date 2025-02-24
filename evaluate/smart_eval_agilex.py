@@ -222,6 +222,7 @@ def eval_bc(policy, deploy_env, policy_config, raw_lang=None):
                 ####################################################################################
 
 class FakeRobotEnv():
+    """Fake robot environment used for testing model evaluation, please replace this to your real environment."""
     def __init__(self):
         pass
 

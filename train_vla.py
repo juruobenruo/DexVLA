@@ -329,8 +329,10 @@ def main(all_config=None, model_config=None):
     model, data_args = ml_utils.load_model(config=all_config, qwen2_vla_config=model_config, rank0_print=rank0_print, tokenizer=tokenizer)
 
     rank0_print(f"{RED} Using Qwen2VLA as VLA backbone {RESET}")
+    # load qwen2_vla processor
     vla_process = Qwen2VLAProcess(tokenizer=tokenizer, multimodal_processor=multimodal_processor, data_args=all_config['data_args'], camera_names=camera_names)
 
+    # load dataset
     train_dataset, val_dataset, stats, sampler_params = load_data(dataset_dir, name_filter, camera_names, all_config['training_args'].per_device_train_batch_size,
                                                                   all_config['training_args'].per_device_eval_batch_size, all_config['data_args'].chunk_size,
                                                                   skip_mirrored_data=all_config['data_args'].skip_mirrored_data,

@@ -66,12 +66,7 @@ class Attention(nn.Module):
             )
         else:
             q = q * self.scale
-            # attn = q @ k.transpose(-2, -1)
-            # if attn_mask is not None:
-            #     attn += attn_mask
-            # attn = attn.softmax(dim=-1)
-            # attn = self.attn_drop(attn)
-            # x = attn @ v
+
             attn_scores = torch.matmul(q, k.transpose(-2, -1))
 
             # Add attention mask if provided
@@ -540,28 +535,18 @@ def get_1d_sincos_pos_embed_from_grid(embed_dim, pos):
 #################################################################################
 #                                   ScaleDP Configs                                  #
 #################################################################################
-def ScaleDP_XH(**kwargs):
-    return ScaleDP(depth=36, n_emb=1760, num_heads=32, **kwargs)
+
 def ScaleDP_H(**kwargs):
     return ScaleDP(depth=32, n_emb=1280, num_heads=16, **kwargs)
-
-def ScaleDP_XL(**kwargs):
-    return ScaleDP(depth=28, n_emb=1152, num_heads=16, **kwargs)
 
 def ScaleDP_L(**kwargs):
     return ScaleDP(depth=24, n_emb=1024, num_heads=16, **kwargs)
 
 
-def ScaleDP_B(**kwargs):
-    return ScaleDP(depth=12, n_emb=768, num_heads=12, **kwargs)
-
-
-def ScaleDP_S(**kwargs):
-    return ScaleDP(depth=12, n_emb=512, num_heads=6, **kwargs)
 
 
 ScaleDP_models = {
-    'ScaleDP-XL': ScaleDP_XL, 'ScaleDP-L': ScaleDP_L, 'ScaleDP-B': ScaleDP_B, 'ScaleDP-S': ScaleDP_S,
+    'ScaleDP-L': ScaleDP_L, 'ScaleDP-H': ScaleDP_H,
 }
 
 AutoModel.register(ScaleDPPolicyConfig, ScaleDP)
