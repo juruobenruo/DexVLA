@@ -83,9 +83,10 @@ with our "docs/config.json" designed for VLA.
 ### Download our pretrained ScaleDP-H weights(Stage 1)
 We released our pretrained weights of ScaleDP-H which is trained after Stage1. Now you can download the weights and directly finetuning your data on Stage 2.
 
-| Model               | Link                                                           |
-|---------------------|----------------------------------------------------------------|
-| ScaleDP-H (~1B)     | [huggingface](https://huggingface.co/lesjie/scale_dp_h)  |
+| Model             | Link                                                           |
+|-------------------|----------------------------------------------------------------|
+| ScaleDP-H (~1B)   | [huggingface](https://huggingface.co/lesjie/scale_dp_h)  |
+| ScaleDP-L (~400M) | [huggingface](https://huggingface.co/lesjie/scale_dp_l)  |
 
 ## 🦾Train
 The training script are "scripts/stage2_train.sh" and "scripts/stage3_train.sh". And you need to change following parameters:
