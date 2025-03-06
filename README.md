@@ -39,6 +39,7 @@ pip install flash-attn --no-build-isolation
 ```
 
 ## Data Preparation
+We provide an example data [here](https://huggingface.co/datasets/lesjie/dexvla_example_data). You can download it and run the whole pipeline quickly.
 1. Our data format is the same as [act](https://github.com/MarkFzp/act-plus-plus), so you need to transfer your data into h5py format. You can refer to function "generate_h5" in [data_preprocess_scripts/rlds_to_h5py.py](
 https://github.com/juruobenruo/DexVLA/blob/main/data_preprocess_scripts/rlds_to_h5py.py) which is used to transfer the data from rlds format to h5py format.
 ```angular2html
