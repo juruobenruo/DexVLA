@@ -1,6 +1,7 @@
 <h1 align="center">
 DexVLA: Vision-Language Model with Plug-In Diffusion Expert for Visuomotor Policy Learning</h1>
 
+![](./docs/dexvla_banner.gif)
 
 * **DexVLA: Vision-Language Model with Plug-In Diffusion Expert for Visuomotor Policy Learning** <br>
   [![arXiv](https://img.shields.io/badge/Arxiv-2502.05855-b31b1b.svg?logo=arXiv)](https://arxiv.org/abs/2502.05855)
@@ -8,6 +9,7 @@ DexVLA: Vision-Language Model with Plug-In Diffusion Expert for Visuomotor Polic
 
 
 ## 📰 News
+* **`Mar. 11th, 2025`**: Add a script for training DiVLA.
 * **`Feb. 24th, 2025`**: We released our Stage 1 trained ScaleDP-H !!!
 * **`Feb. 17th, 2025`**: **DexVLA** is out! **Paper** can be found [here](https://arxiv.org/abs/2502.05855). The **project web** can be found [here](https://dex-vla.github.io/).
 
@@ -17,6 +19,8 @@ DexVLA: Vision-Language Model with Plug-In Diffusion Expert for Visuomotor Polic
 - [Download Pretrained VLM](#Download-Pretrained-VLM)
 - [Train](#train)
 - [Evaluation](#evaluation)
+- [DiVLA](#diffusion-vla)
+- [ScaleDP](#scaledp)
 
 ## Install
 
@@ -104,14 +108,14 @@ And following hyper-parameters must be set as:
 3. **MNOP** :Path to official Qwen2_vl weights(VLM backbone).
 
 ```shell
-./scripts/stage2_train.sh 
+./scripts/train_dexvla_stage2.sh 
 ```
 Train stage3. Post-training on target dexterous tasks. 
 And following hyper-parameters must be set as:
 1. **MNOP** :Path to trained DexVLA of Stage2.
 
 ```shell
-./scripts/stage3_train.sh 
+./scripts/train_dexvla_stage3.sh 
 ```
 
 ## Evaluation
@@ -214,7 +218,14 @@ This is a precision overflow problem in "[DDIMScheduler](https://github.com/hugg
         ###other code###
 ~~~
 
+# Diffusion-VLA
+Our DexVLA is built on Diffusion-VLA(DiVLA) which can be found [here](https://diffusion-vla.github.io/). Paper can be found in [Citation](#citation). You can train Diffusion-VLA with "./scripts/train_divla.sh".
+The mainly differences are as follows:
+1. DiVLA utilizes Unet-based diffusion policy as policy head of VLA.
+2. DiVLA has no three-stage training recipe. 
 
+# ScaleDP
+DexVLA utilizes ScaleDP as diffusion policy head that the main structure of ScaleDP can be found [here](https://scaling-diffusion-policy.github.io/).  Paper can be found in [Citation](#citation). The code can be found in this [dir](https://github.com/juruobenruo/DexVLA/tree/main/policy_heads/models/transformer_diffusion). There are only two files, one for configuration and the other is model structure.
 
 ## Acknowledgement
 We build our project based on:
@@ -224,15 +235,28 @@ We build our project based on:
 
 ## Citation
 
-If you find DexVLA useful for your research and applications, please cite using this BibTeX:
 ```bibtex
-@misc{wen2025dexvlavisionlanguagemodelplugin,
-      title={DexVLA: Vision-Language Model with Plug-In Diffusion Expert for General Robot Control}, 
-      author={Junjie Wen and Yichen Zhu and Jinming Li and Zhibin Tang and Chaomin Shen and Feifei Feng},
-      year={2025},
-      eprint={2502.05855},
-      archivePrefix={arXiv},
-      primaryClass={cs.RO},
-      url={https://arxiv.org/abs/2502.05855}, 
+# DexVLA
+@article{wen2025dexvla,
+  title={DexVLA: Vision-Language Model with Plug-In Diffusion Expert for General Robot Control},
+  author={Wen, Junjie and Zhu, Yichen and Li, Jinming and Tang, Zhibin and Shen, Chaomin and Feng, Feifei},
+  journal={arXiv preprint arXiv:2502.05855},
+  year={2025}
+}
+
+# Diffusion-VLA
+@article{wen2024diffusion,
+  title={Diffusion-VLA: Scaling Robot Foundation Models via Unified Diffusion and Autoregression},
+  author={Wen, Junjie and Zhu, Minjie and Zhu, Yichen and Tang, Zhibin and Li, Jinming and Zhou, Zhongyi and Li, Chengmeng and Liu, Xiaoyu and Peng, Yaxin and Shen, Chaomin and others},
+  journal={arXiv preprint arXiv:2412.03293},
+  year={2024}
+}
+
+# ScaleDP
+@article{zhu2024scaling,
+  title={Scaling diffusion policy in transformer to 1 billion parameters for robotic manipulation},
+  author={Zhu, Minjie and Zhu, Yichen and Li, Jinming and Wen, Junjie and Xu, Zhiyuan and Liu, Ning and Cheng, Ran and Shen, Chaomin and Peng, Yaxin and Feng, Feifei and others},
+  journal={arXiv preprint arXiv:2409.14411},
+  year={2024}
 }
 ```
