@@ -123,7 +123,7 @@ And following hyper-parameters must be set as:
 **❗❗** Make sure your trained checkpoint dir has two files: "preprocessor_config.json" and "chat_template.json".
 If not, please copy them from downloaded Qwen2_vl weights or this [link](https://huggingface.co/Qwen/Qwen2-VL-2B-Instruct/tree/main).
 
-You can refer to our evaluation script [smart_eval_agilex.py](https://github.com/lesjie-wen/dexvla/blob/main/evaluate/smart_eval_agilex.py) to evaluate your DexVLA.
+You can refer to our evaluation script [smart_eval_agilex.py](https://github.com/juruobenruo/DexVLA/blob/main/evaluate/smart_eval_agilex.py) to evaluate your DexVLA.
 
 ## ⚠️ Trouble Shooting
 ### 1."TypeError: _batch_encode_plus() got an unexpected keyword argument 'images'". 
