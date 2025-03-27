@@ -219,6 +219,9 @@ This is a precision overflow problem in "[DDIMScheduler](https://github.com/hugg
         ###other code###
 ~~~
 
+### 4. Robot performs <font color=red>random actions</font> when evaluation.
+This is a bug in evaluation which not affect the training process. Sorry about that and we have fixed this in [23e29e1](https://github.com/juruobenruo/DexVLA/commit/23e29e16a65eac72d940d55f5475e20c996f1e42).
+
 # Diffusion-VLA
 Our DexVLA is built on Diffusion-VLA(DiVLA) which can be found [here](https://diffusion-vla.github.io/). Paper can be found in [Citation](#citation). You can train Diffusion-VLA with "./scripts/train_divla.sh".
 The mainly differences are as follows:
