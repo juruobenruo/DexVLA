@@ -2021,10 +2021,14 @@ class Qwen2VLForConditionalGenerationForVLA(Qwen2VLPreTrainedModel, GenerationMi
         last_hidden_states = [each[-1] for each in outputs.hidden_states] # all hidden states
         all_hidden_states = torch.cat(last_hidden_states, dim=1)
 
+        labels_input = torch.ones((1, input_token_len)) * -100
+        labels_output = torch.ones((1, output_ids.shape[1] - input_token_len))
+        labels = torch.cat([labels_input, labels_output], dim=1)
+
         action_hidden_states = None
 
         if self.using_film:
-            action_hidden_states = self.film_forward(labels=torch.ones_like(output_ids),
+            action_hidden_states = self.film_forward(labels=labels,
                                                      input_ids=output_ids,
                                                      hidden_states=torch.cat(last_hidden_states, dim=1))
 
