@@ -195,6 +195,17 @@ To enable LoRA, you can set the following hyperparameters within the training sc
   --freeze_backbone True \
   ...
 ~~~
+**Notice:** After LoRA finetune, you need to process the checkpoint files as follows:
+~~~ shell
+cd /path/to/finetuned/dir/checkpoint-xxxx
+python ./zero_to_fp32.py ./ ./non_lora_trainables.bin
+~~~
+For evaluation, you have to specify following arguments in ``evaluate/smart_eval_agilex.py``:
+~~~
+"model_base": None, # path to base model
+"enable_lora": True, 
+~~~
+
 #### Smaller ScaleDP
 Our DexVLA consists of two parts: the VLM backbone and the ScaleDP policy head. In our paper, we utilize a 1B - sized ScaleDP. Additionally, we recommend that users employ a smaller one, such as a 410M - sized ScaleDP, to save memory.
 
