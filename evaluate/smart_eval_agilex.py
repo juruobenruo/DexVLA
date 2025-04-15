@@ -23,7 +23,7 @@ def process_obs(obs, states, stats):
     cur_left_wrist = obs['left_wrist']
     cur_right_wrist = obs['right_wrist']
     cur_top = obs['top']
-
+    assert np.max(cur_left_wrist) > 1, "All images must be 0-255."
     traj_rgb_np = np.array([cur_top, cur_left_wrist, cur_right_wrist]) # sequential must align with constants.py
     traj_rgb_np = np.expand_dims(traj_rgb_np, axis=1)
     traj_rgb_np = np.transpose(traj_rgb_np, (1, 0, 4, 2, 3))
@@ -116,7 +116,7 @@ class qwen2_vla_policy:
         return data_dict
 
 
-def eval_bc(policy, deploy_env, policy_config, raw_lang=None):
+def eval_bc(policy, deploy_env, policy_config, raw_lang=None, query_frequency=16):
 
     assert raw_lang is not None, "raw lang is None!!!!!!"
     set_seed(0)
@@ -131,16 +131,12 @@ def eval_bc(policy, deploy_env, policy_config, raw_lang=None):
 
     if policy_config["action_head"].lower() == 'act':
         post_process = lambda a: a * stats['action_std'] + stats['action_mean']
-    elif 'diffusion' in policy_config["action_head"]:
+    elif 'scale_dp_policy' in policy_config["action_head"]:
         post_process = lambda a: ((a + 1) / 2) * (stats['action_max'] - stats['action_min']) + stats['action_min']
     #############################################################################################################
 
-    query_frequency = 16
-
-    query_frequency = int(query_frequency / 4)
-    num_queries = query_frequency
     from collections import deque
-    action_queue = deque(maxlen=num_queries)
+    action_queue = deque(maxlen=query_frequency)
 
     max_timesteps = int(1000 * 10)  # may increase for real-world tasks
 
@@ -159,11 +155,8 @@ def eval_bc(policy, deploy_env, policy_config, raw_lang=None):
                 ### 5. Realize the function of get_obs###################
                 traj_rgb_np, robot_state = process_obs(obs, states, stats)
                 #########################################################
-
                 image_list.append(traj_rgb_np)
-
                 robot_state = torch.from_numpy(robot_state).float().cuda()
-
                 if t % query_frequency == 0:
                     ### 6. Augment the images##############################################################################################
                     curr_image = torch.from_numpy(traj_rgb_np).float().cuda()
@@ -180,20 +173,6 @@ def eval_bc(policy, deploy_env, policy_config, raw_lang=None):
                         curr_image = curr_image.unsqueeze(0)
                     #######################################################################################################################
 
-                if t == 0:
-                    # warm up
-                    for _ in range(2):
-                        batch = policy.process_batch_to_qwen2_vla(curr_image, robot_state, raw_lang)
-                        if policy_config['tinyvla']:
-                            policy.policy.evaluate_tinyvla(**batch, is_eval=True, tokenizer=policy.tokenizer)
-                        else:
-                            all_actions, outputs = policy.policy.evaluate(**batch, is_eval=True, tokenizer=policy.tokenizer)
-                            print("*" * 50)
-                            print(outputs)
-                    print('network warm up done')
-                    time1 = time.time()
-
-                if t % query_frequency == 0:
                     ###7. Process inputs and predict actions############################################################################################
                     batch = policy.process_batch_to_qwen2_vla(curr_image, robot_state, raw_lang)
                     if policy_config['tinyvla']:
@@ -201,14 +180,14 @@ def eval_bc(policy, deploy_env, policy_config, raw_lang=None):
                     else:
                         all_actions, outputs = policy.policy.evaluate(**batch, is_eval=True, tokenizer=policy.tokenizer)
                     ####################################################################################################################################
+                    # clear previous actions
+                    while len(action_queue) > 0:
+                        action_queue.popleft()
 
                     action_queue.extend(
-                            torch.chunk(all_actions, chunks=all_actions.shape[1], dim=1)[0:num_queries])
-                    raw_action = action_queue.popleft()
+                            torch.chunk(all_actions, chunks=all_actions.shape[1], dim=1)[0:query_frequency])
 
-                else:
-                    raw_action = action_queue.popleft()
-
+                raw_action = action_queue.popleft()
                 raw_action = raw_action.squeeze(0).cpu().to(dtype=torch.float32).numpy()
                 ### 8. post process actions##########################################################
                 action = post_process(raw_action)
@@ -233,7 +212,7 @@ class FakeRobotEnv():
         print("Reset to home position.")
 
     def get_obs(self):
-        img = np.zeros((480, 640, 3))
+        img = np.random.rand(480, 640, 3) * 255
         obs = {
             'left_wrist': img,
             'right_wrist': img,
@@ -246,6 +225,7 @@ class FakeRobotEnv():
 if __name__ == '__main__':
     # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>hyper parameters<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     action_head = 'scale_dp_policy'  # or 'unet_diffusion_policy'
+    query_frequency = 16
     policy_config = {
         #### 1. Specify path to trained DexVLA(Required)#############################
         "model_path": "root/path/to/DexVLA_qwen2_vl_stage2_folding/checkpoint-60000",
@@ -260,6 +240,12 @@ if __name__ == '__main__':
     # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>hyper parameters<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
     #### 2. Initialize robot env(Required)##########
+    # Real aloha robot env
+    # sys.path.insert(0, "/path/to/Dev-Code/mirocs")
+    # from run.agilex_robot_env import AgilexRobot
+    # agilex_bot = AgilexRobot()
+
+    # fake env for debug
     agilex_bot = FakeRobotEnv()
     ######################################
     agilex_bot.reset()
@@ -269,6 +255,6 @@ if __name__ == '__main__':
     #######################################
 
 
-    eval_bc(policy, agilex_bot, policy_config, raw_lang=raw_lang)
+    eval_bc(policy, agilex_bot, policy_config, raw_lang=raw_lang, query_frequency=query_frequency)
 
 
