@@ -1453,7 +1453,7 @@ class Qwen2VLForConditionalGenerationForVLA(Qwen2VLPreTrainedModel, GenerationMi
         self.llm_loss_weight = config.llm_loss_weight
 
         if isinstance(config.policy_head_config, dict):
-            config.policy_head_config = AutoConfig.for_model(**config.policy_head_config)
+            config.policy_head_config = AutoConfig.for_model(**config.policy_head_config, model_size=config.policy_head_size)
         self.policy_head = AutoModel.from_config(config=config.policy_head_config)
 
         self.lm_head = nn.Linear(config.hidden_size, config.vocab_size, bias=False)
