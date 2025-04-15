@@ -44,7 +44,7 @@ class ScaleDPPolicyConfig(PretrainedConfig):
             n_emb = MODEL_STRUCTURE[model_size]['n_emb']
             num_heads = MODEL_STRUCTURE[model_size]['num_heads']
         else:
-            raise ValueError("model_size show not be 'none'")
+            raise ValueError("model_size should not be 'none'")
         self.eval = eval
 
         self.input_dim = action_dim
